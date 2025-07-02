@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoleController;
@@ -10,6 +9,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\OfficeController;
+use App\Http\Controllers\ContractController;
 
 Route::group([ 'prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -57,6 +57,13 @@ Route::group(['middleware' => 'auth:api'], function() {
             Route::apiResource('offices', OfficeController::class)->middleware('permission:manage-offices');
         });
     });
+
+    // Contracts
+    Route::apiResource('contracts', ContractController::class)->middleware('permission:manage-contracts');
+    Route::post('contracts/{contract}/attachments', [ContractController::class, 'addAttachment'])
+        ->middleware('permission:manage-contracts');
+    Route::delete('contracts/{contract}/attachments/{attachment}', [ContractController::class, 'deleteAttachment'])
+        ->middleware('permission:manage-contracts');
 
 
 });
