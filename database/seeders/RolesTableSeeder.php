@@ -20,6 +20,9 @@ class RolesTableSeeder extends Seeder
                     'manage-accounts',
                     'manage-customers',
                     'manage-sources',
+                    'manage-branches',
+                    'manage-rooms',
+                    'manage-offices'
                 ]
             ],
             [

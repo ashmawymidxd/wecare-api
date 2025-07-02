@@ -7,6 +7,9 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\SourceController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\BranchController;
+use App\Http\Controllers\RoomController;
+use App\Http\Controllers\OfficeController;
 
 Route::group([ 'prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -42,11 +45,18 @@ Route::group(['middleware' => 'auth:api'], function() {
     Route::post('customers/{customer}/notes', [CustomerController::class, 'addNote'])
         ->middleware('permission:manage-customers');
 
-    //Branches
+    // Branches
+    Route::apiResource('branches', BranchController::class)->middleware('permission:manage-branches');
 
-    // Rooms
+    // Rooms (nested under branches)
+    Route::prefix('branches/{branchId}')->group(function() {
+        Route::apiResource('rooms', RoomController::class)->middleware('permission:manage-rooms')->except(['update']);
 
-    // Office
+        // Offices (nested under rooms)
+        Route::prefix('rooms/{roomId}')->group(function() {
+            Route::apiResource('offices', OfficeController::class)->middleware('permission:manage-offices');
+        });
+    });
 
 
 });
