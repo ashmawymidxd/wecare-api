@@ -45,8 +45,8 @@ class RolesTableSeeder extends Seeder
         // Create admin user
         \App\Models\Employee::create([
             'name' => 'Admin User',
-            'email' => 'admin@wecare.com',
-            'password' => bcrypt('password'),
+            'email' => 'admin@gmail.com',
+            'password' => bcrypt('admin1234'),
             'role_id' => 1
         ]);
     }

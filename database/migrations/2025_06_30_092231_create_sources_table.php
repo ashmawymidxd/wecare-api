@@ -14,7 +14,20 @@ return new class extends Migration
         Schema::create('sources', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('description')->nullable();
+            $table->string('phone_number')->nullable();
+            $table->string('nationality')->nullable();
+            $table->string('preferred_language')->nullable();
+            $table->foreignId('account_manager_id')->nullable()->constrained('employees');
+            $table->date('last_connect_date')->nullable();
+            $table->integer('clients_number')->default(0);
+            $table->enum('source_type', [
+                'Tasheel',
+                'Typing Center',
+                'PRO',
+                'Social Media',
+                'Referral',
+                'Inactive'
+            ])->default('Inactive');
             $table->timestamps();
         });
     }

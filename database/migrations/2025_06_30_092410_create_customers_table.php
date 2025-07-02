@@ -23,7 +23,15 @@ return new class extends Migration
             $table->string('business_category')->nullable();
             $table->string('country')->nullable();
             $table->date('joining_date')->nullable();
-            $table->foreignId('source_id')->nullable()->constrained('sources');
+            $table->enum('source_type', [
+                'Tasheel',
+                'Typing Center',
+                'PRO',
+                'Social Media',
+                'Referral',
+                'Inactive'
+            ])->nullable();
+            $table->string('profile_image')->nullable();
             $table->timestamps();
         });
     }

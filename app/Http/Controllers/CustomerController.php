@@ -13,7 +13,7 @@ class CustomerController extends Controller
 {
     public function index()
     {
-        $customers = Customer::with(['source', 'attachments', 'notes'])->get();
+        $customers = Customer::with(['attachments', 'notes'])->get();
         return response()->json($customers);
     }
 
@@ -30,21 +30,29 @@ class CustomerController extends Controller
             'business_category' => 'nullable|string|max:255',
             'country' => 'nullable|string|max:100',
             'joining_date' => 'nullable|date',
-            'source_id' => 'nullable|exists:sources,id',
+            'source_type' => 'required|in:Tasheel,Typing Center,PRO,Social Media,Referral,Inactive',
+            'profile_image' => 'required|image|max:2048', // 2MB max
         ]);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
-        $customer = Customer::create($validator->validated());
+        $data = $validator->validated();
+
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            $data['profile_image'] = $request->file('profile_image')->store('customer_profile_images');
+        }
+
+        $customer = Customer::create($data);
 
         return response()->json($customer, 201);
     }
 
     public function show($id)
     {
-        $customer = Customer::with(['source', 'attachments', 'notes'])->findOrFail($id);
+        $customer = Customer::with(['attachments', 'notes'])->findOrFail($id);
         return response()->json($customer);
     }
 
@@ -63,14 +71,26 @@ class CustomerController extends Controller
             'business_category' => 'nullable|string|max:255',
             'country' => 'nullable|string|max:100',
             'joining_date' => 'nullable|date',
-            'source_id' => 'nullable|exists:sources,id',
+            'source_type' => 'nullable|in:Tasheel,Typing Center,PRO,Social Media,Referral,Inactive',
+            'profile_image' => 'nullable|image|max:2048',
         ]);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
-        $customer->update($validator->validated());
+        $data = $validator->validated();
+
+        // Handle profile image update
+        if ($request->hasFile('profile_image')) {
+            // Delete old image if exists
+            if ($customer->profile_image) {
+                Storage::delete($customer->profile_image);
+            }
+            $data['profile_image'] = $request->file('profile_image')->store('customer_profile_images');
+        }
+
+        $customer->update($data);
 
         return response()->json($customer);
     }
@@ -78,8 +98,40 @@ class CustomerController extends Controller
     public function destroy($id)
     {
         $customer = Customer::findOrFail($id);
+
+        // Delete profile image if exists
+        if ($customer->profile_image) {
+            Storage::delete($customer->profile_image);
+        }
+
         $customer->delete();
         return response()->json(null, 204);
+    }
+
+    public function updateProfileImage(Request $request, $customerId)
+    {
+        $customer = Customer::findOrFail($customerId);
+
+        $validator = Validator::make($request->all(), [
+            'profile_image' => 'required|image|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        // Delete old image if exists
+        if ($customer->profile_image) {
+            Storage::delete($customer->profile_image);
+        }
+
+        $path = $request->file('profile_image')->store('customer_profile_images');
+        $customer->update(['profile_image' => $path]);
+
+        return response()->json([
+            'message' => 'Profile image updated successfully',
+            'image_url' => Storage::url($path)
+        ]);
     }
 
     public function addAttachment(Request $request, $customerId)
