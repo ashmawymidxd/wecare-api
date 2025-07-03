@@ -10,6 +10,8 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\OfficeController;
 use App\Http\Controllers\ContractController;
+use App\Http\Controllers\InquiryController;
+use App\Http\Controllers\DashboardController;
 
 Route::group([ 'prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -25,11 +27,18 @@ Route::group([ 'prefix' => 'auth'], function () {
 
 Route::group(['middleware' => 'auth:api'], function() {
 
+    // dashboard
+    Route::get('dashboard', [DashboardController::class, 'index'])->middleware('permission:view-dashboard');
+    Route::get('dashboardCharts', [DashboardController::class, 'charts'])->middleware('permission:view-dashboard');
+    Route::get('dashboardStatistice', [DashboardController::class, 'statistice'])->middleware('permission:view-dashboard');
+
     // roles
     Route::apiResource('roles', RoleController::class)->middleware('permission:manage-roles');
 
     // employee
     Route::apiResource('employees', EmployeeController::class)->middleware('permission:manage-employees');
+    Route::delete('employees/{employee}/attachments/{attachment}', [EmployeeController::class, 'deleteAttachment'])
+    ->middleware('permission:manage-employees');
 
     // source
     Route::apiResource('sources', SourceController::class)->middleware('permission:manage-sources');
@@ -64,6 +73,10 @@ Route::group(['middleware' => 'auth:api'], function() {
         ->middleware('permission:manage-contracts');
     Route::delete('contracts/{contract}/attachments/{attachment}', [ContractController::class, 'deleteAttachment'])
         ->middleware('permission:manage-contracts');
+    Route::post('/contracts/{id}/renew', [ContractController::class, 'renew'])->middleware('permission:manage-contracts');
+    Route::patch('/contracts/{id}/status', [ContractController::class, 'updateStatus'])->middleware('permission:manage-contracts');
 
+    // Inquiries
+    Route::apiResource('inquiries', InquiryController::class)->middleware('permission:manage-inquiries');
 
 });

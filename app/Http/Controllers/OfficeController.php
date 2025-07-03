@@ -24,7 +24,8 @@ class OfficeController extends Controller
 
         $validator = Validator::make($request->all(), [
             'office_type' => 'required|string|max:255',
-            'number_of_desks' => 'required|integer|min:1',
+            'number_of_reserved_desks' => 'required|integer|min:1',
+            'number_of_availability_desks' => 'required|integer|min:1',
             'status' => 'required|string|in:available,occupied,maintenance',
         ]);
 

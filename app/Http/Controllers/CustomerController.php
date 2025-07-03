@@ -32,6 +32,7 @@ class CustomerController extends Controller
             'joining_date' => 'nullable|date',
             'source_type' => 'required|in:Tasheel,Typing Center,PRO,Social Media,Referral,Inactive',
             'profile_image' => 'required|image|max:2048', // 2MB max
+            'employee_id' => 'nullable|exists:employees,id'
         ]);
 
         if ($validator->fails()) {
@@ -42,12 +43,17 @@ class CustomerController extends Controller
 
         // Handle profile image upload
         if ($request->hasFile('profile_image')) {
-            $data['profile_image'] = $request->file('profile_image')->store('customer_profile_images');
+            $path = $request->file('profile_image')->store('public/customer_profile_images');
+            $data['profile_image'] = Storage::url($path);
         }
 
         $customer = Customer::create($data);
 
-        return response()->json($customer, 201);
+        // Handle document uploads
+        $this->handleDocumentUploads($request, $customer);
+
+        return response()->json($customer->load(['attachments']), 201);
+
     }
 
     public function show($id)
@@ -73,6 +79,7 @@ class CustomerController extends Controller
             'joining_date' => 'nullable|date',
             'source_type' => 'nullable|in:Tasheel,Typing Center,PRO,Social Media,Referral,Inactive',
             'profile_image' => 'nullable|image|max:2048',
+            'employee_id' => 'nullable|exists:employees,id'
         ]);
 
         if ($validator->fails()) {
@@ -157,6 +164,41 @@ class CustomerController extends Controller
         ]);
 
         return response()->json($attachment, 201);
+    }
+
+    protected function handleDocumentUploads(Request $request, Customer $customer)
+    {
+        // Handle Client ID document
+        if ($request->hasFile('client_id_document')) {
+            $path = $request->file('client_id_document')->store('public/customer_documents');
+            $customer->attachments()->create([
+                'type' => 'client_id_document',
+                'original_name' => $request->file('client_id_document')->getClientOriginalName(),
+                'file_path' => Storage::url($path)
+            ]);
+        }
+
+        // Handle Company License document
+        if ($request->hasFile('company_license_document')) {
+            $path = $request->file('company_license_document')->store('public/customer_documents');
+            $customer->attachments()->create([
+                'type' => 'company_license_document',
+                'original_name' => $request->file('company_license_document')->getClientOriginalName(),
+                'file_path' => Storage::url($path)
+            ]);
+        }
+
+        // Handle other documents
+        if ($request->hasFile('other_documents')) {
+            foreach ($request->file('other_documents') as $file) {
+                $path = $file->store('public/customer_documents');
+                $customer->attachments()->create([
+                    'type' => 'other_documents',
+                    'original_name' => $file->getClientOriginalName(),
+                    'file_path' => Storage::url($path)
+                ]);
+            }
+        }
     }
 
     public function addNote(Request $request, $customerId)

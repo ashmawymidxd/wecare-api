@@ -33,7 +33,8 @@ class Contract extends Model
         'commission',
         'actual_amount',
         'payment_date',
-        'notes'
+        'notes',
+        'status'
     ];
 
     public function customer()

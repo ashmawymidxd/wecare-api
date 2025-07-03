@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('room_id')->constrained()->onDelete('cascade');
             $table->string('office_type');
-            $table->integer('number_of_desks');
+            $table->integer('total_desks');
+            $table->integer('number_of_reserved_desks')->default(0);
+            $table->integer('number_of_availability_desks')->default(0);
             $table->string('status');
             $table->timestamps();
         });

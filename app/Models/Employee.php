@@ -12,7 +12,32 @@ class Employee extends Authenticatable implements JWTSubject
     use Notifiable , HasFactory;
 
     protected $fillable = [
-        'name', 'email', 'password', 'role_id'
+        'name',
+        'email',
+        'password',
+        'role_id',
+        'profile_image',
+        'mobile',
+        'preferred_language',
+        'address',
+        'contract_start_date',
+        'contract_end_date',
+        'salary',
+        'commission',
+        'labor_card_end_date',
+        'passport_end_date',
+        'accommodation_end_date',
+        'notes'
+    ];
+
+    protected $casts = [
+        'contract_start_date' => 'date',
+        'contract_end_date' => 'date',
+        'labor_card_end_date' => 'date',
+        'passport_end_date' => 'date',
+        'accommodation_end_date' => 'date',
+        'salary' => 'decimal:2',
+        'commission' => 'decimal:2',
     ];
 
     protected $hidden = [
@@ -32,6 +57,15 @@ class Employee extends Authenticatable implements JWTSubject
     public function role()
     {
         return $this->belongsTo(Role::class);
+    }
+
+    public function customers(){
+        return $this->hasMany(Customer::class);
+    }
+
+    public function attachments()
+    {
+        return $this->hasMany(EmployeeAttachment::class);
     }
 
     public function hasPermission($permission)

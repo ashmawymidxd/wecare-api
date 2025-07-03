@@ -13,6 +13,7 @@ class RolesTableSeeder extends Seeder
             [
                 'name' => 'admin',
                 'permissions' => [
+                    'view-dashboard',
                     'manage-roles',
                     'manage-employees',
                     'view-reports',
@@ -23,7 +24,8 @@ class RolesTableSeeder extends Seeder
                     'manage-branches',
                     'manage-rooms',
                     'manage-offices',
-                    'manage-contracts'
+                    'manage-contracts',
+                    'manage-inquiries'
                 ]
             ],
             [
@@ -36,8 +38,15 @@ class RolesTableSeeder extends Seeder
             [
                 'name' => 'account-manager',
                 'permissions' => [
-                    'view-reports',
-                    'manage-accounts'
+                    'manage-accounts',
+                    'view-reports'
+                ]
+            ],
+            [
+                'name' => 'hr',
+                'permissions' => [
+                    'manage-employees',
+                    'view-reports'
                 ]
             ]
         ];

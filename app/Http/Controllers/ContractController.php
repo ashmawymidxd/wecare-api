@@ -44,7 +44,8 @@ class ContractController extends Controller
             'payment_date' => 'nullable|date',
             'notes' => 'nullable|string',
             'contract_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
-            'payment_proof_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048'
+            'payment_proof_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
+            'status' => 'nullable|string|in:active,expired,renewed,terminated'
         ]);
 
         if ($validator->fails()) {
@@ -55,6 +56,9 @@ class ContractController extends Controller
 
         // Auto-generate contract number
         $data['contract_number'] = 'CN-' . date('Ymd') . '-' . Str::random(6);
+
+        // Set default status if not provided
+        $data['status'] = $data['status'] ?? 'active';
 
         $contract = Contract::create($data);
 
@@ -99,7 +103,8 @@ class ContractController extends Controller
             'payment_date' => 'nullable|date',
             'notes' => 'nullable|string',
             'contract_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
-            'payment_proof_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048'
+            'payment_proof_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
+            'status' => 'sometimes|string|in:active,expired,renewed,terminated'
         ]);
 
         if ($validator->fails()) {
@@ -127,15 +132,127 @@ class ContractController extends Controller
         return response()->json(null, 204);
     }
 
+    /**
+     * Renew a contract by creating a new contract with similar details
+     */
+    public function renew(Request $request, $id)
+    {
+        $originalContract = Contract::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'start_date' => 'required|date',
+            'expiry_date' => 'required|date|after:start_date',
+            'contract_amount' => 'required|numeric|min:0',
+            'payment_method' => 'required|string|in:cash,cheque,bank_transfer',
+            'cheque_covered' => 'sometimes|boolean',
+            'cash_amount' => 'nullable|numeric|min:0',
+            'cheque_number' => 'nullable|string|required_if:payment_method,cheque',
+            'due_date' => 'nullable|date|required_if:payment_method,cheque',
+            'discount_type' => 'nullable|string',
+            'discount' => 'nullable|numeric|min:0',
+            'electricity_fees' => 'nullable|numeric|min:0',
+            'contract_ratification_fees' => 'nullable|numeric|min:0',
+            'pro_amount_received' => 'nullable|numeric|min:0',
+            'pro_expense' => 'nullable|numeric|min:0',
+            'commission' => 'nullable|numeric|min:0',
+            'actual_amount' => 'required|numeric|min:0',
+            'payment_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+            'contract_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
+            'payment_proof_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $data = $validator->validated();
+
+        // Create new contract with most details from original
+        $newContractData = [
+            'customer_id' => $originalContract->customer_id,
+            'start_date' => $data['start_date'],
+            'expiry_date' => $data['expiry_date'],
+            'office_type' => $originalContract->office_type,
+            'city' => $originalContract->city,
+            'branch_id' => $originalContract->branch_id,
+            'number_of_desks' => $originalContract->number_of_desks,
+            'contract_amount' => $data['contract_amount'],
+            'payment_method' => $data['payment_method'],
+            'cheque_covered' => $data['cheque_covered'] ?? $originalContract->cheque_covered,
+            'cash_amount' => $data['cash_amount'] ?? $originalContract->cash_amount,
+            'cheque_number' => $data['cheque_number'] ?? $originalContract->cheque_number,
+            'due_date' => $data['due_date'] ?? $originalContract->due_date,
+            'discount_type' => $data['discount_type'] ?? $originalContract->discount_type,
+            'discount' => $data['discount'] ?? $originalContract->discount,
+            'electricity_fees' => $data['electricity_fees'] ?? $originalContract->electricity_fees,
+            'contract_ratification_fees' => $data['contract_ratification_fees'] ?? $originalContract->contract_ratification_fees,
+            'pro_amount_received' => $data['pro_amount_received'] ?? $originalContract->pro_amount_received,
+            'pro_expense' => $data['pro_expense'] ?? $originalContract->pro_expense,
+            'commission' => $data['commission'] ?? $originalContract->commission,
+            'actual_amount' => $data['actual_amount'],
+            'payment_date' => $data['payment_date'] ?? $originalContract->payment_date,
+            'notes' => $data['notes'] ?? $originalContract->notes,
+            'status' => 'active',
+            'renewed_from_id' => $originalContract->id
+        ];
+
+        // Auto-generate new contract number
+        $newContractData['contract_number'] = 'CN-' . date('Ymd') . '-' . Str::random(6);
+
+        $newContract = Contract::create($newContractData);
+
+        // Handle file uploads for the new contract
+        $this->handleFileUploads($request, $newContract);
+
+        // Update original contract status to 'renewed'
+        $originalContract->update(['status' => 'renewed']);
+
+        return response()->json([
+            'message' => 'Contract renewed successfully',
+            'original_contract' => $originalContract,
+            'new_contract' => $newContract->load('attachments')
+        ], 201);
+    }
+
+    /**
+     * Update the status of a contract
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $contract = Contract::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|string|in:active,expired,renewed,terminated',
+            'notes' => 'nullable|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $data = $validator->validated();
+
+        $contract->update([
+            'status' => $data['status'],
+            'notes' => isset($data['notes']) ? $data['notes'] : $contract->notes
+        ]);
+
+        return response()->json([
+            'message' => 'Contract status updated successfully',
+            'contract' => $contract
+        ]);
+    }
+
     protected function handleFileUploads(Request $request, Contract $contract)
     {
         if ($request->hasFile('contract_file')) {
             $file = $request->file('contract_file');
-            $path = $file->store('contracts/attachments');
+            $path = $file->store('public/contracts/attachments');
 
             ContractAttachment::create([
                 'contract_id' => $contract->id,
-                'file_path' => $path,
+                'file_path' => Storage::url($path),
                 'file_name' => $file->getClientOriginalName(),
                 'type' => 'contract'
             ]);
@@ -143,11 +260,11 @@ class ContractController extends Controller
 
         if ($request->hasFile('payment_proof_file')) {
             $file = $request->file('payment_proof_file');
-            $path = $file->store('contracts/attachments');
+            $path = $file->store('public/contracts/attachments');
 
             ContractAttachment::create([
                 'contract_id' => $contract->id,
-                'file_path' => $path,
+                'file_path' => Storage::url($path),
                 'file_name' => $file->getClientOriginalName(),
                 'type' => 'payment_proof'
             ]);
@@ -168,11 +285,11 @@ class ContractController extends Controller
         }
 
         $file = $request->file('file');
-        $path = $file->store('contracts/attachments');
+        $path = $file->store('public/contracts/attachments');
 
         $attachment = ContractAttachment::create([
             'contract_id' => $contract->id,
-            'file_path' => $path,
+            'file_path' => Storage::url($path),
             'file_name' => $file->getClientOriginalName(),
             'type' => $request->type
         ]);

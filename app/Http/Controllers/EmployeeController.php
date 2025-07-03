@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\EmployeeAttachment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class EmployeeController extends Controller
 {
@@ -17,17 +19,32 @@ class EmployeeController extends Controller
 
     public function index()
     {
-        $employees = Employee::with('role')->get();
+        $employees = Employee::with(['role', 'attachments' , 'customers'])->get();
         return response()->json($employees);
     }
 
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:employees',
+            'mobile' => 'nullable|string|max:20',
             'password' => 'required|string|min:6|confirmed',
+            'preferred_language' => 'nullable|string|max:50',
+            'address' => 'nullable|string',
+            'contract_start_date' => 'nullable|date',
+            'contract_end_date' => 'nullable|date',
+            'salary' => 'nullable|numeric',
+            'commission' => 'nullable|numeric|between:0,100',
             'role_id' => 'required|exists:roles,id',
+            'labor_card_end_date' => 'nullable|date',
+            'passport_end_date' => 'nullable|date',
+            'accommodation_end_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+            'client_id_document' => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:5120',
+            'company_license_document' => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:5120',
+            'other_documents.*' => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:5120',
         ], [
             'password.confirmed' => 'The password confirmation does not match.',
         ]);
@@ -39,28 +56,50 @@ class EmployeeController extends Controller
             ], 422);
         }
 
-        $employee = Employee::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role_id' => $request->role_id,
-        ]);
+        $data = $validator->validated();
+        $data['password'] = Hash::make($data['password']);
 
-        return response()->json($employee, 201);
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            $path = $request->file('profile_image')->store('public/employee_profile_images');
+            $data['profile_image'] = Storage::url($path);
+        }
+
+        $employee = Employee::create($data);
+
+        // Handle document uploads
+        $this->handleDocumentUploads($request, $employee);
+
+        return response()->json($employee->load(['role', 'attachments']), 201);
     }
 
     public function show(Employee $employee)
     {
-        return response()->json($employee->load('role'));
+        return response()->json($employee->load(['role', 'attachments']));
     }
 
     public function update(Request $request, Employee $employee)
     {
         $validator = Validator::make($request->all(), [
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|required|string|email|max:255|unique:employees,email,' . $employee->id,
+            'mobile' => 'nullable|string|max:20',
             'password' => 'sometimes|nullable|string|min:6|confirmed',
+            'preferred_language' => 'nullable|string|max:50',
+            'address' => 'nullable|string',
+            'contract_start_date' => 'nullable|date',
+            'contract_end_date' => 'nullable|date',
+            'salary' => 'nullable|numeric',
+            'commission' => 'nullable|numeric|between:0,100',
             'role_id' => 'sometimes|required|exists:roles,id',
+            'labor_card_end_date' => 'nullable|date',
+            'passport_end_date' => 'nullable|date',
+            'accommodation_end_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+            'client_id_document' => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:5120',
+            'company_license_document' => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:5120',
+            'other_documents.*' => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:5120',
         ], [
             'password.confirmed' => 'The password confirmation does not match.',
         ]);
@@ -72,20 +111,95 @@ class EmployeeController extends Controller
             ], 422);
         }
 
-        $data = $request->only(['name', 'email', 'role_id']);
+        $data = $validator->validated();
 
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
+        // Remove password if empty
+        if (empty($data['password'])) {
+            unset($data['password']);
+        } else {
+            $data['password'] = Hash::make($data['password']);
+        }
+
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            // Delete old image if exists
+            if ($employee->profile_image) {
+                $oldImagePath = str_replace('/storage', 'public', $employee->profile_image);
+                Storage::delete($oldImagePath);
+            }
+
+            $path = $request->file('profile_image')->store('public/employee_profile_images');
+            $data['profile_image'] = Storage::url($path);
         }
 
         $employee->update($data);
 
-        return response()->json($employee->load('role'));
+        // Handle document uploads
+        $this->handleDocumentUploads($request, $employee);
+
+        return response()->json($employee->load(['role', 'attachments']));
     }
 
     public function destroy(Employee $employee)
     {
+        // Delete profile image if exists
+        if ($employee->profile_image) {
+            $imagePath = str_replace('/storage', 'public', $employee->profile_image);
+            Storage::delete($imagePath);
+        }
+
+        // Delete all attachments
+        foreach ($employee->attachments as $attachment) {
+            Storage::delete(str_replace('/storage', 'public', $attachment->path));
+            $attachment->delete();
+        }
+
         $employee->delete();
         return response()->json(null, 204);
+    }
+
+    public function deleteAttachment(Employee $employee, $attachmentId)
+    {
+        $attachment = $employee->attachments()->findOrFail($attachmentId);
+
+        Storage::delete(str_replace('/storage', 'public', $attachment->path));
+        $attachment->delete();
+
+        return response()->json(['message' => 'Attachment deleted successfully']);
+    }
+
+    protected function handleDocumentUploads(Request $request, Employee $employee)
+    {
+        // Handle Client ID document
+        if ($request->hasFile('client_id_document')) {
+            $path = $request->file('client_id_document')->store('public/employee_documents');
+            $employee->attachments()->create([
+                'type' => 'client_id',
+                'name' => $request->file('client_id_document')->getClientOriginalName(),
+                'path' => Storage::url($path)
+            ]);
+        }
+
+        // Handle Company License document
+        if ($request->hasFile('company_license_document')) {
+            $path = $request->file('company_license_document')->store('public/employee_documents');
+            $employee->attachments()->create([
+                'type' => 'company_license',
+                'name' => $request->file('company_license_document')->getClientOriginalName(),
+                'path' => Storage::url($path)
+            ]);
+        }
+
+        // Handle other documents
+        if ($request->hasFile('other_documents')) {
+            foreach ($request->file('other_documents') as $file) {
+                $path = $file->store('public/employee_documents');
+                $employee->attachments()->create([
+                    'type' => 'other',
+                    'name' => $file->getClientOriginalName(),
+                    'path' => Storage::url($path)
+                ]);
+            }
+        }
     }
 }

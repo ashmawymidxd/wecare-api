@@ -12,7 +12,9 @@ class Office extends Model
     protected $fillable = [
         'room_id',
         'office_type',
-        'number_of_desks',
+        'total_desks',
+        'number_of_reserved_desks',
+        'number_of_availability_desks',
         'status'
     ];
 

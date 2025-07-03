@@ -74,7 +74,8 @@ class AuthController extends Controller
             $message = [
                 'message' => 'Employee profile retrieved successfully',
                 'employee' => auth()->user(),
-                'permissions' => auth()->user()->role->permissions
+                'permissions' => auth()->user()->role->permissions,
+                'attachments' => auth()->user()->attachments,
             ]
         );
     }
@@ -85,7 +86,8 @@ class AuthController extends Controller
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => auth()->factory()->getTTL() * 60,
-            'employee' => auth()->user()
+            'employee' => auth()->user(),
+            'attachments' => auth()->user()->attachments,
         ]);
     }
 }

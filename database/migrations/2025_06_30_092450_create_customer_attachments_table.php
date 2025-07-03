@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('customer_attachments', function (Blueprint $table) {
-              $table->id();
+            $table->id();
             $table->foreignId('customer_id')->constrained()->onDelete('cascade');
-            $table->enum('type', ['client_id', 'company_licence', 'other']);
+            $table->enum('type', ['client_id_document', 'company_license_document', 'other_documents']);
             $table->string('file_path');
             $table->string('original_name');
             $table->timestamps();

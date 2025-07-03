@@ -12,6 +12,7 @@ class Customer extends Model
 
    protected $fillable = [
         'name',
+        'employee_id',
         'mobile',
         'email',
         'nationality',
@@ -37,8 +38,17 @@ class Customer extends Model
         return $this->hasMany(CustomerAttachment::class);
     }
 
+    public function employee(){
+        return $this->belongsTo(Employee::class);
+    }
+
     public function notes()
     {
         return $this->hasMany(CustomerNote::class);
+    }
+
+    public function contracts()
+    {
+        return $this->hasMany(Contract::class);
     }
 }
