@@ -8,7 +8,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-
+use App\Notifications\NewContractCreated;
+use App\Notifications\PaymentContract;
+use App\Notifications\ActionRequired;
+use App\Notifications\Clearancedocuments;
+use Illuminate\Support\Facades\Auth;
 class ContractController extends Controller
 {
     public function index()
@@ -64,6 +68,30 @@ class ContractController extends Controller
 
         // Handle file uploads
         $this->handleFileUploads($request, $contract);
+
+        // Send notification to authenticated employee
+        if ($employee = Auth::guard('api')->user()) {
+            $employee->notify(new NewContractCreated($contract));
+        }
+
+        // payment date notification
+        if($request->payment_date){
+            $employee = Auth::guard('api')->user();
+            $employee->notify(new PaymentContract($contract));
+        }
+
+        if($request->status != "active"){
+            $employee = Auth::guard('api')->user();
+            $employee->notify(new ActionRequired($contract));
+        }
+
+        if (!$request->hasFile('contract_file')) {
+            $employee = Auth::guard('api')->user();
+            $employee->notify(new Clearancedocuments($contract));
+        }
+
+        // Optionally notify all employees or specific roles
+        // Employee::all()->each->notify(new NewContractCreated($contract));
 
         return response()->json($contract->load('attachments'), 201);
     }

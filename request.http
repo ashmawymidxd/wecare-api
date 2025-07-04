@@ -1,17 +1,2 @@
-# Post http://127.0.0.1:8000/api/auth/login
-# Content-Type: application/json
-
-# {
-#   "email": "admin@wecare.com",
-#   "password": "password"
-# }
-
-
-# # Profile
-# Get http://127.0.0.1:8000/api/auth/me
-# Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NTEyMjU0MzYsImV4cCI6MTc1MTIyOTAzNiwibmJmIjoxNzUxMjI1NDM2LCJqdGkiOiJCV0dBTlh4SDFDcEY1U3p6Iiwic3ViIjoiMSIsInBydiI6IjMyOTYzYTYwNmMyZjE3MWYxYzE0MzMxZTc2OTc2NmNkNTkxMmVkMTUifQ.-wp_nj-6EhtA3xF_tfuDqFp3P-kKnFw9sa7oj5TV-AE
-
-
-Get http://127.0.0.1:8000/api/roles
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NTEyMjU0MzYsImV4cCI6MTc1MTIyOTAzNiwibmJmIjoxNzUxMjI1NDM2LCJqdGkiOiJCV0dBTlh4SDFDcEY1U3p6Iiwic3ViIjoiMSIsInBydiI6IjMyOTYzYTYwNmMyZjE3MWYxYzE0MzMxZTc2OTc2NmNkNTkxMmVkMTUifQ.-wp_nj-6EhtA3xF_tfuDqFp3P-kKnFw9sa7oj5TV-AE
-
+{"message":"A new contract has been created (Contract #CN-20250704-iYkIVw)",
+"contract_id":54,"action_url":"\/contracts\/54"}

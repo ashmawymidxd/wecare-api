@@ -37,6 +37,13 @@ class Contract extends Model
         'status'
     ];
 
+     protected $casts = [
+        'start_date' => 'date',
+        'expiry_date' => 'date',
+        'due_date' => 'date',
+        'payment_date' => 'date',
+     ];
+
     public function customer()
     {
         return $this->belongsTo(Customer::class);

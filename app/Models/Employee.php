@@ -84,4 +84,6 @@ class Employee extends Authenticatable implements JWTSubject
     {
         return in_array($permission, $this->role->permissions ?? []);
     }
+
+    
 }

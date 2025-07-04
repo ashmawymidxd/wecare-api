@@ -1,5 +1,5 @@
 <?php
-
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoleController;
@@ -13,6 +13,7 @@ use App\Http\Controllers\ContractController;
 use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\EmployeeNotificationController;
 
 Route::group([ 'prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -87,5 +88,13 @@ Route::group(['middleware' => 'auth:api'], function() {
         ->middleware('permission:manage-reports');
     Route::get('contract', [ReportController::class, 'contract'])->middleware('permission:view-dashboard')
         ->middleware('permission:manage-reports');
+
+   Route::prefix('employee/notifications')->group(function () {
+        Route::get('/', [EmployeeNotificationController::class, 'index']);
+        Route::get('/unread', [EmployeeNotificationController::class, 'unread']);
+        Route::get('/read', [EmployeeNotificationController::class, 'read']);
+        Route::post('/mark-all-as-read', [EmployeeNotificationController::class, 'markAllAsRead']);
+        Route::post('/{id}/mark-as-read', [EmployeeNotificationController::class, 'markAsRead']);
+    });
 
 });
