@@ -17,8 +17,8 @@ class ContractSeeder extends Seeder
      */
     public function run()
     {
-        // Create 30 random contracts
-        Contract::factory()->count(30)->create();
+        // Create 50 random contracts
+        Contract::factory()->count(50)->create();
 
         // Create some specific contract examples
         $premiumCustomer = Customer::first();

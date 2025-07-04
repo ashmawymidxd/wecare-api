@@ -88,6 +88,7 @@ class AuthController extends Controller
             'expires_in' => auth()->factory()->getTTL() * 60,
             'employee' => auth()->user(),
             'attachments' => auth()->user()->attachments,
+            'permissions' => auth()->user()->role->permissions,
         ]);
     }
 }

@@ -1,5 +1,4 @@
 <?php
-
 namespace Database\Factories;
 
 use App\Models\Customer;
@@ -16,16 +15,24 @@ class ContractFactory extends Factory
      */
     public function definition()
     {
-        // Generate start date (past 1 year to future 1 month)
-        $startDate = Carbon::today()
-            ->subMonths(12) // 1 year ago
-            ->addDays(rand(0, 365 + 30)); // Random up to 13 months ahead
+        // Generate created_at date (80% this month or last month, 20% random within 1 year)
+        $createdAt = $this->faker->boolean(80)
+            ? $this->faker->randomElement([
+                Carbon::now()->startOfMonth(),
+                Carbon::now()->subMonth()->startOfMonth()
+            ])->addDays(rand(0, 30)) // Random day within the month
+            : Carbon::today()->subMonths(12)->addDays(rand(0, 365 + 30));
+
+        // Generate start date relative to created_at (before or shortly after)
+        $startDate = (clone $createdAt)
+            ->subDays(rand(0, 30)) // Up to 30 days before creation
+            ->addDays(rand(0, 15)); // Or up to 15 days after creation
 
         // Generate expiry date (6-24 months after start date)
         $expiryDate = (clone $startDate)->addMonths(rand(6, 24));
 
         $contractAmount = $this->faker->randomFloat(2, 1000, 10000);
-        $paymentMethod = $this->faker->randomElement(['Cash', 'Cheque', 'Bank Transfer', 'Credit Card']);
+        $paymentMethod = $this->faker->randomElement(['Cash', 'Cheque', 'Bank Transfer']);
         $discountType = $this->faker->randomElement(['Percentage', 'Fixed', null]);
 
         // Safely generate payment date (between start date and min(expiry, today))
@@ -71,6 +78,9 @@ class ContractFactory extends Factory
             'actual_amount' => $contractAmount,
             'payment_date' => $paymentDate ? $paymentDate->format('Y-m-d') : null,
             'notes' => $this->faker->optional(0.3)->sentence(),
+            'status' => $this->faker->randomElement(['active','inactive','expired','renewed','terminated','pending','new']),
+            'created_at' => $createdAt->format('Y-m-d H:i:s'),
+            'updated_at' => $createdAt->format('Y-m-d H:i:s'),
         ];
     }
 }

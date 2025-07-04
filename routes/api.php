@@ -12,6 +12,7 @@ use App\Http\Controllers\OfficeController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportController;
 
 Route::group([ 'prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -78,5 +79,13 @@ Route::group(['middleware' => 'auth:api'], function() {
 
     // Inquiries
     Route::apiResource('inquiries', InquiryController::class)->middleware('permission:manage-inquiries');
+
+    // Reports
+    Route::get('orderClients', [ReportController::class, 'orderClients'])->middleware('permission:view-dashboard')
+        ->middleware('permission:manage-reports');
+    Route::get('finance', [ReportController::class, 'finance'])->middleware('permission:view-dashboard')
+        ->middleware('permission:manage-reports');
+    Route::get('contract', [ReportController::class, 'contract'])->middleware('permission:view-dashboard')
+        ->middleware('permission:manage-reports');
 
 });

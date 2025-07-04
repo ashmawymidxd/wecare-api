@@ -63,6 +63,18 @@ class Employee extends Authenticatable implements JWTSubject
         return $this->hasMany(Customer::class);
     }
 
+    public function customersContracts()
+    {
+        return $this->hasManyThrough(
+            Contract::class,
+            Customer::class,
+            'employee_id', // Foreign key on customers table
+            'customer_id', // Foreign key on contracts table
+            'id',          // Local key on employees table
+            'id'           // Local key on customers table
+        );
+    }
+
     public function attachments()
     {
         return $this->hasMany(EmployeeAttachment::class);

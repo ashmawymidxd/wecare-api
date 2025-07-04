@@ -34,7 +34,7 @@ return new class extends Migration
             $table->decimal('actual_amount', 10, 2);
             $table->date('payment_date')->nullable();
             $table->text('notes')->nullable();
-            $table->text('status')->default('active');
+            $table->text('status')->default('new');
             $table->timestamps();
         });
     }

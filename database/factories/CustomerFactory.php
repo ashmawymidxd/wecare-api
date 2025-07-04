@@ -27,6 +27,7 @@ class CustomerFactory extends Factory
             'source_type' => $this->faker->optional(0.6)->randomElement($sourceTypes),
             'profile_image' => $this->faker->optional(0.3)->imageUrl(200, 200, 'people'),
             'employee_id'=> Employee::factory(),
+
         ];
     }
 }

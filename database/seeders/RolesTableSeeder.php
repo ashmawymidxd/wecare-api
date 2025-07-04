@@ -25,7 +25,8 @@ class RolesTableSeeder extends Seeder
                     'manage-rooms',
                     'manage-offices',
                     'manage-contracts',
-                    'manage-inquiries'
+                    'manage-inquiries',
+                    'manage-reports'
                 ]
             ],
             [
