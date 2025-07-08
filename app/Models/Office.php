@@ -12,14 +12,27 @@ class Office extends Model
     protected $fillable = [
         'room_id',
         'office_type',
-        'total_desks',
-        'number_of_reserved_desks',
-        'number_of_availability_desks',
-        'status'
     ];
 
     public function room()
     {
         return $this->belongsTo(Room::class);
     }
+
+     public function desks()
+    {
+        return $this->hasMany(Desk::class);
+    }
+
+    // Helper method to get the main desk (for private offices)
+    // public function getMainDeskAttribute()
+    // {
+    //     if ($this->office_type === 'private') {
+    //         return $this->desks()->firstOrCreate([
+    //             'desk_number' => 'main',
+    //             'status' => 'available'
+    //         ]);
+    //     }
+    //     return null;
+    // }
 }

@@ -17,7 +17,6 @@ class Contract extends Model
         'office_type',
         'city',
         'branch_id',
-        'number_of_desks',
         'contract_amount',
         'payment_method',
         'cheque_covered',
@@ -57,5 +56,18 @@ class Contract extends Model
     public function attachments()
     {
         return $this->hasMany(ContractAttachment::class);
+    }
+
+    public function desks()
+    {
+        return $this->belongsToMany(Desk::class)->withTimestamps();
+    }
+
+    // In your Contract model
+    public function isExpiringSoon($days = 30)
+    {
+        return $this->status === 'active' &&
+        $this->expiry_date->isFuture() &&
+        $this->expiry_date->diffInDays(now()) <= $days;
     }
 }

@@ -61,7 +61,6 @@ class ContractFactory extends Factory
             'office_type' => $this->faker->randomElement(['Private', 'Shared', 'Open Space', 'Meeting Room']),
             'city' => $this->faker->city(),
             'branch_id' => Branch::factory(),
-            'number_of_desks' => $this->faker->numberBetween(1, 10),
             'contract_amount' => $contractAmount,
             'payment_method' => $paymentMethod,
             'cheque_covered' => $paymentMethod === 'Cheque' ? $this->faker->boolean() : false,

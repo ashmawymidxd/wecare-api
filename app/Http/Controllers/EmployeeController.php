@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\ActivityLog;
 use App\Models\EmployeeAttachment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use App\Notifications\CustomerTransferredNotification;
 class EmployeeController extends Controller
 {
     public function __construct()
@@ -73,10 +76,13 @@ class EmployeeController extends Controller
         return response()->json($employee->load(['role', 'attachments']), 201);
     }
 
-    public function show(Employee $employee)
-    {
-        return response()->json($employee->load(['role', 'attachments']));
-    }
+ public function show(Employee $employee)
+{
+    return response()->json([
+        'employee' => $employee->load(['role', 'attachments', 'customers']),
+        'statistics' => $employee->getCustomerStatistics()
+    ], 200);
+}
 
     public function update(Request $request, Employee $employee)
     {
@@ -201,5 +207,40 @@ class EmployeeController extends Controller
                 ]);
             }
         }
+    }
+
+    public function transferCustomers(Request $request)
+    {
+        $request->validate([
+            'from_employee_id' => 'required|exists:employees,id',
+            'to_employee_id' => 'required|exists:employees,id|different:from_employee_id'
+        ]);
+
+        $fromEmployee = Employee::findOrFail($request->from_employee_id);
+        $toEmployee = Employee::findOrFail($request->to_employee_id);
+
+        $transferredCount = $fromEmployee->transferCustomersTo($toEmployee);
+
+        ActivityLog::create([
+            "auth_id" =>Auth::guard('api')->user()->id,
+            "level" =>"info",
+            "message" =>"Transferred {$transferredCount} customers from employee {$fromEmployee->name} to employee {$toEmployee->name}",
+            "type" =>"Employees"
+        ]);
+
+        Log::info("Transferred {$transferredCount} customers from employee {$fromEmployee->name} to employee {$toEmployee->name}");
+
+        $employee = Auth::guard('api')->user();
+        $employee->notify(new CustomerTransferredNotification($fromEmployee, $toEmployee, $transferredCount));
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully transferred {$transferredCount} customers",
+            'data' => [
+                'from_employee_id' => $fromEmployee->id,
+                'to_employee_id' => $toEmployee->id,
+                'transferred_count' => $transferredCount
+            ]
+        ]);
     }
 }

@@ -10,7 +10,7 @@ class BranchController extends Controller
 {
     public function index()
     {
-        $branches = Branch::with('rooms.offices')->get();
+        $branches = Branch::with('rooms.offices.desks')->get();
         return response()->json($branches);
     }
 

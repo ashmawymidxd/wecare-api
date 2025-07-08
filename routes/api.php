@@ -9,11 +9,13 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\OfficeController;
+use App\Http\Controllers\DeskController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\EmployeeNotificationController;
+use App\Http\Controllers\LogsController;
 
 Route::group([ 'prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -40,7 +42,9 @@ Route::group(['middleware' => 'auth:api'], function() {
     // employee
     Route::apiResource('employees', EmployeeController::class)->middleware('permission:manage-employees');
     Route::delete('employees/{employee}/attachments/{attachment}', [EmployeeController::class, 'deleteAttachment'])
-    ->middleware('permission:manage-employees');
+        ->middleware('permission:manage-employees');
+    Route::post('/employees/transfer-customers', [EmployeeController::class, 'transferCustomers'])
+        ->middleware('permission:manage-employees');
 
     // source
     Route::apiResource('sources', SourceController::class)->middleware('permission:manage-sources');
@@ -66,6 +70,14 @@ Route::group(['middleware' => 'auth:api'], function() {
         // Offices (nested under rooms)
         Route::prefix('rooms/{roomId}')->group(function() {
             Route::apiResource('offices', OfficeController::class)->middleware('permission:manage-offices');
+            // Desks
+            Route::prefix('/offices/{officeId}')->group(function() {
+                Route::post('/desks', [DeskController::class, 'addDeskToSharedOffice'])
+                    ->middleware('permission:manage-offices');
+                Route::get('/desks', [DeskController::class, 'listDesks'])
+                    ->middleware('permission:manage-offices');
+            });
+
         });
     });
 
@@ -89,6 +101,7 @@ Route::group(['middleware' => 'auth:api'], function() {
     Route::get('contract', [ReportController::class, 'contract'])->middleware('permission:view-dashboard')
         ->middleware('permission:manage-reports');
 
+    // notifications
    Route::prefix('employee/notifications')->group(function () {
         Route::get('/', [EmployeeNotificationController::class, 'index']);
         Route::get('/unread', [EmployeeNotificationController::class, 'unread']);
@@ -96,5 +109,8 @@ Route::group(['middleware' => 'auth:api'], function() {
         Route::post('/mark-all-as-read', [EmployeeNotificationController::class, 'markAllAsRead']);
         Route::post('/{id}/mark-as-read', [EmployeeNotificationController::class, 'markAsRead']);
     });
+
+    // logs
+    Route::get('/logs', [LogsController::class, 'index']);
 
 });

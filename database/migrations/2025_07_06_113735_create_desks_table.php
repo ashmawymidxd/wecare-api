@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('offices', function (Blueprint $table) {
+        Schema::create('desks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room_id')->constrained()->onDelete('cascade');
-            $table->enum('office_type', ['private', 'shared']);
+            $table->foreignId('office_id')->constrained()->onDelete('cascade');
+            $table->string('desk_number');
+            $table->enum('status', ['available', 'booked'])->default('available');
             $table->timestamps();
         });
     }
@@ -24,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('offices');
+        Schema::dropIfExists('desks');
     }
 };

@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('office_type');
             $table->string('city');
             $table->foreignId('branch_id')->constrained()->onDelete('cascade');
-            $table->integer('number_of_desks');
             $table->decimal('contract_amount', 10, 2);
             $table->string('payment_method');
             $table->boolean('cheque_covered')->default(false);
@@ -34,7 +33,7 @@ return new class extends Migration
             $table->decimal('actual_amount', 10, 2);
             $table->date('payment_date')->nullable();
             $table->text('notes')->nullable();
-            $table->text('status')->default('new');
+            $table->text('status')->default('New');
             $table->timestamps();
         });
     }

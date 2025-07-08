@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Contract;
 use App\Models\ContractAttachment;
+use App\Models\ActivityLog;
+use App\Models\Desk;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
@@ -13,16 +15,20 @@ use App\Notifications\PaymentContract;
 use App\Notifications\ActionRequired;
 use App\Notifications\Clearancedocuments;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 class ContractController extends Controller
 {
     public function index()
     {
-        $contracts = Contract::with(['customer', 'branch', 'attachments'])->get();
+        $contracts = Contract::with(['customer', 'branch', 'attachments','desks'])->get();
         return response()->json($contracts);
     }
 
     public function store(Request $request)
     {
+        // Start logging the contract creation attempt
+        Log::info('Attempting to create a new contract', ['request_data' => $request->all()]);
+
         $validator = Validator::make($request->all(), [
             'customer_id' => 'required|exists:customers,id',
             'start_date' => 'required|date',
@@ -30,7 +36,8 @@ class ContractController extends Controller
             'office_type' => 'required|string',
             'city' => 'required|string',
             'branch_id' => 'required|exists:branches,id',
-            'number_of_desks' => 'required|integer|min:1',
+            'desk_ids' => 'required|array',
+            'desk_ids.*' => 'exists:desks,id',
             'contract_amount' => 'required|numeric|min:0',
             'payment_method' => 'required|string|in:cash,cheque,bank_transfer',
             'cheque_covered' => 'sometimes|boolean',
@@ -49,10 +56,11 @@ class ContractController extends Controller
             'notes' => 'nullable|string',
             'contract_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
             'payment_proof_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
-            'status' => 'nullable|string|in:active,inactive,expired,renewed,terminated,new'
+            'status' => 'nullable|string|in:New,Renewal,Active,Expiring,Archived,Pending,Unused'
         ]);
 
         if ($validator->fails()) {
+            Log::warning('Contract creation validation failed', ['errors' => $validator->errors()]);
             return response()->json($validator->errors(), 422);
         }
 
@@ -60,45 +68,106 @@ class ContractController extends Controller
 
         // Auto-generate contract number
         $data['contract_number'] = 'CN-' . date('Ymd') . '-' . Str::random(6);
+        Log::debug('Generated contract number', ['contract_number' => $data['contract_number']]);
 
         // Set default status if not provided
         $data['status'] = $data['status'] ?? 'active';
 
-        $contract = Contract::create($data);
+        try {
+             $unavailableDesks = Desk::whereIn('id', $request->desk_ids)
+                ->where('status', '!=', 'available')
+                ->pluck('desk_number')
+                ->toArray();
 
-        // Handle file uploads
-        $this->handleFileUploads($request, $contract);
+            if (!empty($unavailableDesks)) {
+                return response()->json([
+                    'message' => 'Some desks are not available',
+                    'unavailable_desks' => $unavailableDesks
+                ], 400);
+            }
 
-        // Send notification to authenticated employee
-        if ($employee = Auth::guard('api')->user()) {
-            $employee->notify(new NewContractCreated($contract));
+            $contract = Contract::create($data);
+            // Attach desks
+            $contract->desks()->attach($request->desk_ids);
+
+            // Update desk statuses
+            Desk::whereIn('id', $request->desk_ids)->update(['status' => 'booked']);
+            Log::info('Contract created successfully', ['contract_id' => $contract->id, 'contract_number' => $contract->contract_number]);
+
+            // Handle file uploads
+            $this->handleFileUploads($request, $contract);
+
+            // Log the authenticated user who created the contract
+            if ($employee = Auth::guard('api')->user()) {
+                Log::info('Contract created by employee', [
+                    'employee_id' => $employee->id,
+                    'employee_name' => $employee->name,
+                    'contract_id' => $contract->id
+                ]);
+
+                // Send notification to authenticated employee
+                $employee->notify(new NewContractCreated($contract));
+            }
+
+            // Log and handle payment date notification
+            if($request->payment_date) {
+                Log::info('Contract has payment date set', [
+                    'contract_id' => $contract->id,
+                    'payment_date' => $request->payment_date
+                ]);
+
+                ActivityLog::create([
+                    "auth_id" =>Auth::guard('api')->user()->id,
+                    "level" =>"info",
+                    "message" =>" Payment for Contract".$contract->contract_number."with ".$contract->customer->name." isDone",
+                    "type" =>"Employees"
+                ]);
+
+                if (isset($employee)) {
+                    $employee->notify(new PaymentContract($contract));
+                }
+            }
+
+            if($request->status != "active") {
+                Log::notice('Contract created with non-active status', [
+                    'contract_id' => $contract->id,
+                    'status' => $request->status
+                ]);
+
+                if (isset($employee)) {
+                    $employee->notify(new ActionRequired($contract));
+                }
+            }
+
+            if (!$request->hasFile('contract_file')) {
+                Log::notice('Contract created without attached file', ['contract_id' => $contract->id]);
+
+                if (isset($employee)) {
+                    $employee->notify(new Clearancedocuments($contract));
+                }
+            }else{
+                ActivityLog::create([
+                    "auth_id" =>Auth::guard('api')->user()->id,
+                    "level" =>"info",
+                    "message" =>"Clearance documents for Contract ".$contract->contract_number."with ".$contract->customer->name." Uploaded ",
+                    "type" =>"Employees"
+                ]);
+            }
+
+            return response()->json($contract->load('attachments','desks'), 201);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create contract', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json(['message' => 'Contract creation failed'], 500);
         }
-
-        // payment date notification
-        if($request->payment_date){
-            $employee = Auth::guard('api')->user();
-            $employee->notify(new PaymentContract($contract));
-        }
-
-        if($request->status != "active"){
-            $employee = Auth::guard('api')->user();
-            $employee->notify(new ActionRequired($contract));
-        }
-
-        if (!$request->hasFile('contract_file')) {
-            $employee = Auth::guard('api')->user();
-            $employee->notify(new Clearancedocuments($contract));
-        }
-
-        // Optionally notify all employees or specific roles
-        // Employee::all()->each->notify(new NewContractCreated($contract));
-
-        return response()->json($contract->load('attachments'), 201);
     }
-
     public function show($id)
     {
-        $contract = Contract::with(['customer', 'branch', 'attachments'])->findOrFail($id);
+        $contract = Contract::with(['customer', 'branch', 'attachments','desks'])->findOrFail($id);
         return response()->json($contract);
     }
 
@@ -284,6 +353,13 @@ class ContractController extends Controller
                 'file_name' => $file->getClientOriginalName(),
                 'type' => 'contract'
             ]);
+
+            ActivityLog::create([
+                "auth_id" =>Auth::guard('api')->user()->id,
+                "level" =>"info",
+                "message" =>"Clearance documents for Contract ".$contract->contract_number."with ".$contract->customer->name." Uploaded ",
+                "type" =>"Employees"
+            ]);
         }
 
         if ($request->hasFile('payment_proof_file')) {
@@ -320,6 +396,13 @@ class ContractController extends Controller
             'file_path' => Storage::url($path),
             'file_name' => $file->getClientOriginalName(),
             'type' => $request->type
+        ]);
+
+        ActivityLog::create([
+            "auth_id" =>Auth::guard('api')->user()->id,
+            "level" =>"info",
+            "message" =>"Clearance documents for Contract ".$contract->contract_number." with ".$contract->customer->name." Uploaded ",
+            "type" =>"Employees"
         ]);
 
         return response()->json($attachment, 201);

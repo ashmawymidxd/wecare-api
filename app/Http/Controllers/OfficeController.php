@@ -15,7 +15,7 @@ class OfficeController extends Controller
             $query->where('branch_id', $branchId)->where('id', $roomId);
         })->get();
 
-        return response()->json($offices);
+        return response()->json($offices->load('desks'));
     }
 
     public function store(Request $request, $branchId, $roomId)
@@ -23,10 +23,7 @@ class OfficeController extends Controller
         $room = Room::where('branch_id', $branchId)->findOrFail($roomId);
 
         $validator = Validator::make($request->all(), [
-            'office_type' => 'required|string|max:255',
-            'number_of_reserved_desks' => 'required|integer|min:1',
-            'number_of_availability_desks' => 'required|integer|min:1',
-            'status' => 'required|string|in:available,occupied,maintenance',
+            'office_type' => 'required|in:private,shared',
         ]);
 
         if ($validator->fails()) {
@@ -35,7 +32,34 @@ class OfficeController extends Controller
 
         $office = $room->offices()->create($validator->validated());
 
-        return response()->json($office, 201);
+        // // For private offices, create a single main desk
+        // if ($office->office_type === 'private') {
+        //     $office->desks()->create([
+        //         'desk_number' => 'main',
+        //         'status' => 'available'
+        //     ]);
+        // }
+
+        // For private offices, create a single main desk
+        if ($office->office_type === 'shared') {
+          $number_desks = $request->number_of_desks;
+          for ($i=0; $i < $number_desks; $i++) {
+                if ($i < 20) {
+                    $office->desks()->create([
+                        'desk_number' => 'A'.$i+1,
+                        'status' => 'available'
+                    ]);
+                }
+                elseif ($i > 20 && $i < 40) {
+                     $office->desks()->create([
+                        'desk_number' => 'B'.$i+1,
+                        'status' => 'available'
+                    ]);
+                }
+          }
+        }
+
+        return response()->json($office->load('desks'), 201);
     }
 
     public function show($branchId, $roomId, $id)
@@ -44,7 +68,7 @@ class OfficeController extends Controller
             $query->where('branch_id', $branchId)->where('id', $roomId);
         })->findOrFail($id);
 
-        return response()->json($office);
+        return response()->json($office->load('desks'));
     }
 
     public function update(Request $request, $branchId, $roomId, $id)
@@ -55,8 +79,6 @@ class OfficeController extends Controller
 
         $validator = Validator::make($request->all(), [
             'office_type' => 'sometimes|required|string|max:255',
-            'number_of_desks' => 'sometimes|required|integer|min:1',
-            'status' => 'sometimes|required|string|in:available,occupied,maintenance',
         ]);
 
         if ($validator->fails()) {

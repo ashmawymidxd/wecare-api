@@ -1,0 +1,7 @@
+post http://127.0.0.1:8000/api/auth/login
+content-type: application/json
+
+{
+    "email": "admin@gmail.com",
+    "password": "admin1234"
+}

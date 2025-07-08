@@ -14,16 +14,9 @@ class OfficeFactory extends Factory
      */
     public function definition()
     {
-        $totalDesks = $this->faker->numberBetween(5, 20);
-        $reservedDesks = $this->faker->numberBetween(0, $totalDesks);
-
         return [
             'room_id' => Room::factory(),
-            'office_type' => $this->faker->randomElement(['Private', 'Shared', 'Open Space', 'Meeting']),
-            'total_desks' => $totalDesks,
-            'number_of_reserved_desks' => $reservedDesks,
-            'number_of_availability_desks' => $totalDesks - $reservedDesks,
-            'status' => $this->faker->randomElement(['Available', 'Occupied', 'Under Maintenance']),
+            'office_type' => $this->faker->randomElement(['private', 'shared']),
         ];
     }
-}
+};

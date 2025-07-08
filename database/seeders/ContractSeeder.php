@@ -32,7 +32,6 @@ class ContractSeeder extends Seeder
             'office_type' => 'Private',
             'city' => 'New York',
             'branch_id' => $mainBranch->id,
-            'number_of_desks' => 5,
             'contract_amount' => 15000.00,
             'payment_method' => 'Bank Transfer',
             'cheque_covered' => false,

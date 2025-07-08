@@ -25,11 +25,7 @@ class OfficeSeeder extends Seeder
         // Create some specific office examples
         Office::create([
             'room_id' => Room::first()->id,
-            'office_type' => 'Executive Suite',
-            'total_desks' => 1,
-            'number_of_reserved_desks' => 1,
-            'number_of_availability_desks' => 0,
-            'status' => 'Occupied',
+            'office_type' => 'private',
         ]);
     }
 }

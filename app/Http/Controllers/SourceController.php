@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Source;
 use App\Models\Employee;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-
+use Illuminate\Support\Facades\Auth;
 class SourceController extends Controller
 {
     public function index()
@@ -53,6 +54,15 @@ class SourceController extends Controller
             DB::beginTransaction();
 
             $source = Source::create($validator->validated());
+
+            if($request->account_manager_id){
+                  ActivityLog::create([
+                    "auth_id" =>Auth::guard('api')->user()->id,
+                    "level" =>"info",
+                    "message" =>$source->accountManager->name." Conected with ".$request->name,
+                    "type" =>"Employees"
+                ]);
+            }
 
             // If this source has clients, we might want to update related records
             if ($source->clients_number > 0) {
