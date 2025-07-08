@@ -102,7 +102,7 @@ Route::group(['middleware' => 'auth:api'], function() {
         ->middleware('permission:manage-reports');
 
     // notifications
-   Route::prefix('employee/notifications')->group(function () {
+   Route::prefix('employee/notifications')->middleware('permission:manage-notifications')->group(function () {
         Route::get('/', [EmployeeNotificationController::class, 'index']);
         Route::get('/unread', [EmployeeNotificationController::class, 'unread']);
         Route::get('/read', [EmployeeNotificationController::class, 'read']);
@@ -111,6 +111,6 @@ Route::group(['middleware' => 'auth:api'], function() {
     });
 
     // logs
-    Route::get('/logs', [LogsController::class, 'index']);
+    Route::get('/logs', [LogsController::class, 'index'])->middleware('permission:manage-logs');
 
 });

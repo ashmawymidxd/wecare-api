@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -29,6 +30,12 @@ class AuthController extends Controller
         if (!$token = auth()->attempt($validator->validated())) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
+
+        // Record attendance
+        Attendance::create([
+            'employee_id' => auth()->user()->id,
+            'login_time' => now(),
+        ]);
 
         return $this->createNewToken($token);
     }
@@ -59,6 +66,17 @@ class AuthController extends Controller
 
     public function logout()
     {
+        // Update the latest attendance record with logout time
+        $employeeId = auth()->user()->id;
+
+        $attendance = Attendance::where('employee_id', $employeeId)
+            ->whereNull('logout_time')
+            ->latest('login_time')
+            ->first();
+
+        if ($attendance) {
+            $attendance->update(['logout_time' => now()]);
+        }
         auth()->logout();
         return response()->json(['message' => 'Employee successfully signed out']);
     }

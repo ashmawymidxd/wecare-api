@@ -77,12 +77,19 @@ class EmployeeController extends Controller
     }
 
  public function show(Employee $employee)
-{
-    return response()->json([
-        'employee' => $employee->load(['role', 'attachments', 'customers']),
-        'statistics' => $employee->getCustomerStatistics()
-    ], 200);
-}
+    {
+        return response()->json([
+            'employee' => $employee->load(['role', 'attachments', 'customers']),
+            'statistics' => [
+                "customers"=>$employee->customerStat(),
+                "contracts"=>$employee->contractStats(),
+                "expired_contracts"=>$employee->expiredContractStats(),
+                "average_contracts_amount"=>$employee->averageContractAmountStats(),
+                "conversion_rate"=>$employee->conversionRateStats(),
+                "attendance"=>$employee->getAttendance(),
+            ],
+        ], 200);
+    }
 
     public function update(Request $request, Employee $employee)
     {

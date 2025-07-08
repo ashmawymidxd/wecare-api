@@ -6,10 +6,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-
+use App\Traits\HasCustomerStatistics;
 class Employee extends Authenticatable implements JWTSubject
 {
-    use Notifiable , HasFactory;
+    use Notifiable , HasFactory , HasCustomerStatistics;
 
     protected $fillable = [
         'name',
@@ -63,6 +63,11 @@ class Employee extends Authenticatable implements JWTSubject
         return $this->hasMany(Customer::class);
     }
 
+    public function contracts()
+    {
+        return $this->hasManyThrough(Contract::class, Customer::class);
+    }
+
     public function customersContracts()
     {
         return $this->hasManyThrough(
@@ -108,35 +113,15 @@ class Employee extends Authenticatable implements JWTSubject
         return $customerCount;
     }
 
-      public function getCustomerStatistics()
+    public function attendances()
     {
-        // Total customer count
-        $currentCount = $this->customers()->count();
+        return $this->hasMany(Attendance::class);
+    }
 
-        // Get count from previous month
-        $previousMonthCount = $this->customers()
-            ->where('created_at', '>=', now()->subMonth()->startOfMonth())
-            ->where('created_at', '<', now()->subMonth()->endOfMonth())
-            ->count();
-
-        // Calculate percentage change
-        $percentageChange = 0;
-        if ($previousMonthCount > 0) {
-            $percentageChange = (($currentCount - $previousMonthCount) / $previousMonthCount) * 100;
-        } elseif ($currentCount > 0) {
-            $percentageChange = 100; // infinite% growth (from 0 to current)
-        }
-
-        // Format the percentage with +/-
-        $formattedPercentage = $percentageChange >= 0
-            ? '+'.number_format($percentageChange, 0).'%'
-            : number_format($percentageChange, 0).'%';
-
-        return [
-            'customers_count' => $currentCount,
-            'percentage_change' => $formattedPercentage,
-            'comparison_text' => "Last Month"
-        ];
+    // Add this method to get attendance records
+    public function getAttendance()
+    {
+        return $this->attendances()->orderBy('login_time', 'desc')->get();
     }
 
 }
