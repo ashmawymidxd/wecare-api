@@ -90,7 +90,6 @@ class AuthController extends Controller
     {
         return response()->json(
             $message = [
-                'message' => 'Employee profile retrieved successfully',
                 'employee' => auth()->user(),
                 'permissions' => auth()->user()->role->permissions,
                 'attachments' => auth()->user()->attachments,

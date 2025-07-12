@@ -76,7 +76,7 @@ class EmployeeController extends Controller
         return response()->json($employee->load(['role', 'attachments']), 201);
     }
 
- public function show(Employee $employee)
+    public function show(Employee $employee)
     {
         return response()->json([
             'employee' => $employee->load(['role', 'attachments', 'customers']),
@@ -116,6 +116,7 @@ class EmployeeController extends Controller
         ], [
             'password.confirmed' => 'The password confirmation does not match.',
         ]);
+
 
         if ($validator->fails()) {
             return response()->json([

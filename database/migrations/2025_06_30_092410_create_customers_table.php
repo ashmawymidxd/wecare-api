@@ -32,6 +32,9 @@ return new class extends Migration
                 'Referral',
                 'Inactive'
             ])->nullable();
+            $table->enum('status', [
+               "Active", "Inactive", "New"
+            ])->nullable();
             $table->string('profile_image')->nullable();
             $table->timestamps();
         });

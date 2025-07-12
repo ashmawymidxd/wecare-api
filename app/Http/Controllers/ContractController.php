@@ -56,7 +56,7 @@ class ContractController extends Controller
             'notes' => 'nullable|string',
             'contract_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
             'payment_proof_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
-            'status' => 'nullable|string|in:New,Renewal,Active,Expiring,Archived,Pending,Unused'
+            'status' => 'nullable|string|in:new,renewed,active,expiring,archived,pending,unused'
         ]);
 
         if ($validator->fails()) {

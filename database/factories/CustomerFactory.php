@@ -12,7 +12,7 @@ class CustomerFactory extends Factory
     {
         $sourceTypes = ['Tasheel', 'Typing Center', 'PRO', 'Social Media', 'Referral', 'Inactive'];
         $businessCategories = ['Construction', 'Retail', 'Hospitality', 'Technology', 'Healthcare', 'Education', 'Manufacturing', null];
-
+        $statusOptions = ['Active', 'Inactive', 'New', 'Pending', 'Expiring'];
         return [
             'name' => $this->faker->name(),
             'mobile' => $this->faker->unique()->phoneNumber(),
@@ -27,7 +27,7 @@ class CustomerFactory extends Factory
             'source_type' => $this->faker->optional(0.6)->randomElement($sourceTypes),
             'profile_image' => $this->faker->optional(0.3)->imageUrl(200, 200, 'people'),
             'employee_id'=> Employee::factory(),
-
+            'status' => $this->faker->randomElement($statusOptions)
         ];
     }
 }

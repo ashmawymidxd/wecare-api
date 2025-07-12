@@ -23,7 +23,8 @@ class Customer extends Model
         'country',
         'joining_date',
         'source_type',
-        'profile_image'
+        'profile_image',
+        'status'
     ];
 
     protected $dates = ['joining_date'];

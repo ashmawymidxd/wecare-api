@@ -62,6 +62,8 @@ class RolesTableSeeder extends Seeder
         \App\Models\Employee::create([
             'name' => 'Admin User',
             'email' => 'admin@gmail.com',
+            "mobile"=>'01554300351',
+            'profile_image'=>'storage/employee_profile_images/default.png',
             'password' => bcrypt('admin1234'),
             'role_id' => 1
         ]);

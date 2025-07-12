@@ -15,6 +15,7 @@ use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\EmployeeNotificationController;
+use App\Http\Controllers\GeneralSettingsController;
 use App\Http\Controllers\LogsController;
 
 Route::group([ 'prefix' => 'auth'], function () {
@@ -112,5 +113,6 @@ Route::group(['middleware' => 'auth:api'], function() {
 
     // logs
     Route::get('/logs', [LogsController::class, 'index'])->middleware('permission:manage-logs');
+    Route::get('settings', [GeneralSettingsController::class, 'index']);
 
 });

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Customer;
 use App\Models\Contract;
 use App\Models\Source;
@@ -27,7 +27,7 @@ class DashboardController extends Controller
         $incomeStats = $this->getIncomeStatistics($currentMonth, $previousMonth);
 
         // 4. Expiring Contracts
-        $expiringContracts = $this->getExpiringContractsStatistics();
+        $expiringContracts = $this->getExpiredContractsStatistics();
 
         // 5. Renew Customers
         $renewCastomers = $this->contractRenewalMetrics();
@@ -45,14 +45,14 @@ class DashboardController extends Controller
         return response()->json([
              'revenue_stats' => $this->getRevenueStatistics(),
              'source_counts' =>$this->sourceTypeStatistics(),
-             'occupancy_rat' =>$this->occupancyRat()
+             'occupancy_rate' =>$this->occupancyRate()
         ]);
     }
 
     public function statistice(){
         return response()->json([
             'get_expiring_contracts' => $this->getExpiringContracts(),
-            'getEmployeePerformanceReport' => $this->getEmployeePerformanceReport()
+            'get_employee_performance_report' => $this->getEmployeePerformanceReport()
         ]);
 
     }
@@ -73,9 +73,7 @@ class DashboardController extends Controller
 
         return [
             'count' => $currentMonthCount,
-            'previous_count' => $previousMonthCount,
             'percentage_change' => round($percentageChange, 2),
-            'trend' => $percentageChange >= 0 ? 'up' : 'down'
         ];
     }
 
@@ -95,9 +93,7 @@ class DashboardController extends Controller
 
         return [
             'count' => $currentMonthCount,
-            'previous_count' => $previousMonthCount,
             'percentage_change' => round($percentageChange, 2),
-            'trend' => $percentageChange >= 0 ? 'up' : 'down'
         ];
     }
 
@@ -117,50 +113,40 @@ class DashboardController extends Controller
 
         return [
             'amount' => $currentMonthIncome,
-            'previous_amount' => $previousMonthIncome,
             'percentage_change' => round($percentageChange, 2),
-            'trend' => $percentageChange >= 0 ? 'up' : 'down'
         ];
     }
 
-   protected function getExpiringContractsStatistics()
+    protected function getExpiredContractsStatistics()
     {
-        $currentMonth = Carbon::now();
+        $currentDate = Carbon::now();
         $previousMonth = Carbon::now()->subMonth();
 
-        // Contracts expiring in next 30 days
-        $thresholdDate = $currentMonth->copy()->addDays(30);
-
-        // Current expiring contracts (soon to expire)
-        $expiringCount = Contract::whereDate('expiry_date', '<=', $thresholdDate)
-            ->whereDate('expiry_date', '>=', $currentMonth)
+        // Contracts that have already expired (before today)
+        $expiredCount = Contract::whereDate('expiry_date', '<', $currentDate)
             ->count();
 
-        // Recently expired contracts (past 30 days)
-        $recentlyExpiredCount = Contract::whereDate('expiry_date', '<', $currentMonth)
-            ->whereDate('expiry_date', '>=', $currentMonth->copy()->subDays(30))
+        // Contracts that expired in the last 30 days (for trend analysis)
+        $recentlyExpiredCount = Contract::whereDate('expiry_date', '<', $currentDate)
+            ->whereDate('expiry_date', '>=', $currentDate->copy()->subDays(30))
             ->count();
 
-        // Previous month's expiring contracts (for comparison)
-        $previousMonthExpiring = Contract::whereDate('expiry_date', '<=', $previousMonth->copy()->addDays(30))
-            ->whereDate('expiry_date', '>=', $previousMonth)
+        // Contracts that expired in the previous month (for comparison)
+        $previousMonthExpired = Contract::whereDate('expiry_date', '<', $previousMonth)
+            ->whereDate('expiry_date', '>=', $previousMonth->copy()->subDays(30))
             ->count();
 
-        // Calculate percentage change
-        $percentageChange = $previousMonthExpiring > 0
-            ? (($expiringCount - $previousMonthExpiring) / $previousMonthExpiring) * 100
-            : ($expiringCount > 0 ? 100 : 0);
+        // Calculate percentage change (compared to previous month)
+        $percentageChange = $previousMonthExpired > 0
+            ? (($recentlyExpiredCount - $previousMonthExpired) / $previousMonthExpired) * 100
+            : ($recentlyExpiredCount > 0 ? 100 : 0);
 
         return [
-            'expiring_soon_count' => $expiringCount,
-            'recently_expired_count' => $recentlyExpiredCount,
-            'total_at_risk' => $expiringCount + $recentlyExpiredCount,
-            'previous_month_expiring' => $previousMonthExpiring,
-            'percentage_change' => round($percentageChange, 2),
-            'trend' => $percentageChange >= 0 ? 'up' : 'down'
+            'count' => $expiredCount,          // Total expired contracts (all time)
+            'recent_count' => $recentlyExpiredCount, // Expired in last 30 days
+            'percentage_change' => round($percentageChange, 2), // Month-over-month trend
         ];
     }
-
     protected function getRevenueStatistics()
     {
         $currentMonth = Carbon::now();
@@ -190,17 +176,14 @@ class DashboardController extends Controller
                 ->sum('contract_amount');
 
             $last8MonthsRevenue[] = [
-                'month' => $month->format('M Y'),
-                'revenue' => $revenue,
-                'month_short' => $month->format('M')
+                'name' => $month->format('M'),
+                'value' => $revenue,
             ];
         }
 
         return [
             'current_revenue' => $currentRevenue,
-            'previous_revenue' => $previousRevenue,
             'percentage_change' => round($percentageChange, 2),
-            'trend' => $percentageChange >= 0 ? 'up' : 'down',
             'last_8_months' => $last8MonthsRevenue
         ];
     }
@@ -214,11 +197,6 @@ class DashboardController extends Controller
         // Last month metrics
         $lastMonthStart = Carbon::now()->subMonth()->startOfMonth();
         $lastMonthEnd = Carbon::now()->subMonth()->endOfMonth();
-
-        // Current month expired contracts
-        $currentMonthExpired = Contract::where('status', 'expired')
-            ->whereBetween('expiry_date', [$currentMonthStart, $currentMonthEnd])
-            ->count();
 
         // Current month renewed contracts
         $currentMonthRenewed = Contract::where('status', 'renewed')
@@ -241,32 +219,10 @@ class DashboardController extends Controller
             $renewalPercentageChange = (($currentMonthRenewed - $lastMonthRenewed) / $lastMonthRenewed) * 100;
         }
 
-        return response()->json([
-            'metrics' => [
-                'current_month' => [
-                    'expired_contracts' => $currentMonthExpired,
-                    'renewed_contracts' => $currentMonthRenewed,
-                    'renewal_rate' => $currentMonthExpired > 0
-                        ? round(($currentMonthRenewed / $currentMonthExpired) * 100, 2)
-                        : 0,
-                ],
-                'last_month' => [
-                    'expired_contracts' => $lastMonthExpired,
-                    'renewed_contracts' => $lastMonthRenewed,
-                    'renewal_rate' => $lastMonthExpired > 0
-                        ? round(($lastMonthRenewed / $lastMonthExpired) * 100, 2)
-                        : 0,
-                ],
-                'percentage_change' => round($renewalPercentageChange, 2),
-            ],
-            'summary' => sprintf(
-                '%d renewals of %d expired contracts (%s%.2f%% vs Last Month)',
-                $currentMonthRenewed,
-                $currentMonthExpired,
-                $renewalPercentageChange >= 0 ? '+' : '',
-                $renewalPercentageChange
-            )
-        ]);
+        return [
+            'count' => $currentMonthRenewed,
+            'percentage_change' => round($renewalPercentageChange, 2),
+        ];
     }
 
     public function sourceTypeStatistics()
@@ -295,85 +251,111 @@ class DashboardController extends Controller
         $stats = [];
         foreach ($allTypes as $type) {
             $stats[] = [
-                'source_type' => $type,
-                'count' => ($counts[$type] / $count) * 100 ?? 0
+                'id' => $type,
+                'label' => $type,
+                'value' => ($counts[$type] / $count) * 100 ?? 0
             ];
         }
 
-        return response()->json([
+        return [
             'source_type_stats' => $stats
-        ]);
+        ];
     }
 
-    public function occupancyRat(){
-         // Total private offices
-        $totalPrivateOffices = Office::where('office_type', 'private')->count();
+    public function occupancyRate() {
+        // Get all offices with their desks
+        $offices = Office::with('desks')->get();
 
-        // Fully rented private offices (availability = 0)
-        $fullyRentedPrivateOffices = Office::where('office_type', 'private')
-                                        ->where('number_of_availability_desks', 0)
-                                        ->count();
+        $totalDesks = 0;
+        $bookedDesks = 0;
 
-        // Calculate percentage (handle division by zero)
-        $percentage = $totalPrivateOffices > 0
-            ? ($fullyRentedPrivateOffices / $totalPrivateOffices) * 100
+        foreach ($offices as $office) {
+            foreach ($office->desks as $desk) {
+                $totalDesks++;
+                if ($desk->status === 'booked') {
+                    $bookedDesks++;
+                }
+            }
+        }
+
+        // Calculate occupancy rate (handle division by zero)
+        $occupancyRate = $totalDesks > 0
+            ? ($bookedDesks / $totalDesks) * 100
             : 0;
 
-        return response()->json([
-            'total_private_offices' => $totalPrivateOffices,
-            'fully_rented_private_offices' => $fullyRentedPrivateOffices,
-            'percentage_rented' => round($percentage, 2) // Rounded to 2 decimal places
-        ]);
+        return [
+            'value' => round($occupancyRate, 2) // Rounded to 2 decimal places
+        ];
     }
 
     public function getExpiringContracts()
-    {
-        // Define what "soon" means (e.g., within 30 days from now)
-        $soonDate = Carbon::now()->addDays(30);
+{
+    // Define what "soon" means (e.g., within 30 days from now)
+    $soonDate = Carbon::now()->addDays(30);
 
-        $expiringContracts = Contract::with('customer')
-            ->where('expiry_date', '<=', $soonDate)
-            ->where('expiry_date', '>=', Carbon::now())
-            ->orderBy('expiry_date', 'asc')
-            ->get();
+    $expiringContracts = Contract::with([
+        'customer' => function($query) {
+            $query->select('id', 'name', 'profile_image', 'employee_id')
+                  ->with(['employee' => function($q) {
+                      $q->select('id', 'name'); // Assuming 'name' is the employee name field
+                  }]);
+        }
+    ])
+    ->where('expiry_date', '<=', $soonDate)
+    ->where('expiry_date', '>=', Carbon::now())
+    ->orderBy('expiry_date', 'asc')
+    ->get()
+    ->map(function ($contract) {
+        return [
+            'key' => $contract->customer->id,
+            'id' => $contract->customer->id,
+            'client' => $contract->customer->name,
+            'avatar' => $contract->customer->profile_image ? Storage::url($contract->customer->profile_image) : Storage::url('customer_profile_images/default.png'),
+            'expirationDate' => $contract->expiry_date->format('F j, Y'),
+            'accManager' => $contract->customer->employee->name ?? null, // Add employee name
+        ];
+    });
 
-        return response()->json([
-            'success' => true,
-            'data' => $expiringContracts,
-            'message' => 'Contracts expiring soon retrieved successfully'
-        ]);
-    }
+    return [
+        'data' => $expiringContracts,
+    ];
+}
 
     public function getEmployeePerformanceReport()
     {
-        $employees = Employee::withCount(['customers as total_customers'])
-            ->with(['customers' => function($query) {
+            $employees = Employee::withCount(['customers as total_customers'])->with(['customers' => function($query) {
                 $query->withCount(['contracts as has_contracts' => function($q) {
-                    $q->where('status', 'active'); // or whatever status indicates valid contracts
+                    $q->where('status', 'active');
                 }]);
-            }])
-            ->get()
+            }])->whereHas('role', function($query) {
+                $query->where('name', 'account-manager');
+            })->get()
             ->map(function($employee) {
-                $customersWithContracts = $employee->customers->where('has_contracts', '>', 0)->count();
-                $totalRevenue = $employee->customers->sum(function($customer) {
-                    return $customer->contracts->sum('contract_amount');
-                });
 
+                $customersWithContracts = $employee->customers->where('has_contracts', '>', 0)->count();
+
+                // Total count of all renewed contracts for this employee's customers
+                $totalRenewedContracts = $employee->customers()
+                    ->withCount(['contracts' => function($query) {
+                        $query->where('status', 'renewed');
+                    }])
+                    ->get()
+                    ->sum('contracts_count');
+                    
                 return [
-                    'employee_id' => $employee->id,
-                    'employee_name' => $employee->name,
-                    'total_customers' => $employee->total_customers,
-                    'customers_with_contracts' => $customersWithContracts,
-                    'total_revenue' => $totalRevenue,
-                    'commission_earned' => $totalRevenue * ($employee->commission / 100),
+                    'key' => $employee->id,
+                    'manager' => $employee->name,
+                    'avatar' => $employee->profile_image ? Storage::url($employee->profile_image) : Storage::url('employee_profile_images/default.png'),
+                    'customers' => $employee->total_customers,
+                    'target' => $customersWithContracts,
+                    'renewals' => $totalRenewedContracts,
+                    'renewalTarget' => 50,
                 ];
             });
 
-        return response()->json([
-            'success' => true,
+        return [
             'data' => $employees,
-            'message' => 'Employee performance report generated successfully'
-        ]);
+        ];
     }
 
 }

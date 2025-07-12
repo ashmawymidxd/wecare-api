@@ -11,12 +11,70 @@ use Illuminate\Support\Facades\Storage;
 
 class CustomerController extends Controller
 {
-    public function index()
+   public function index()
     {
-        $customers = Customer::with(['attachments', 'notes'])->get();
-        return response()->json($customers);
-    }
+        $customers = Customer::with(['attachments', 'notes', 'contracts'])->get();
 
+        $transformedCustomers = $customers->map(function ($customer) {
+            // Format contracts
+            $formattedContracts = $customer->contracts->map(function ($contract) {
+                return [
+                    'contractNumber' => $contract->contract_number,
+                    'startDate' => $contract->start_date ? \Carbon\Carbon::parse($contract->start_date)->format('d M, Y') : null,
+                    'endDate' => $contract->expiry_date ? \Carbon\Carbon::parse($contract->expiry_date)->format('d M, Y') : null,
+                    'amount' => $contract->contract_amount ? number_format($contract->contract_amount, 0) . ' AED' : null,
+                    'status' => $contract->status,
+                    'validUntil' => $contract->expiry_date ? \Carbon\Carbon::parse($contract->expiry_date)->format('d M,Y') : 'Waiting For Payment',
+                ];
+            });
+
+            // Format notes
+            $formattedNotes = $customer->notes->map(function ($note) {
+                return [
+                    'id' => 'CID-' . $note->id,
+                    'dateAdded' => $note->created_at ? \Carbon\Carbon::parse($note->created_at)->format('d M, Y') : null,
+                    'addedBy' => 'Ahmed Ali', // You'll need to replace this with actual user data
+                ];
+            });
+
+            // Format attachments (assuming you have specific attachment types)
+            $formattedAttachments = [
+                'clientId' => 'Client ID.PDF', // Replace with actual data
+                'companyLicense' => 'Company License.PDF', // Replace with actual data
+            ];
+
+            return [
+                'id' => 'KD-' . $customer->id,
+                'client' => [
+                    'name' => $customer->name,
+                    'phone' => $customer->mobile,
+                    'avatar' => $customer->profile_image ? Storage::url($customer->profile_image) :  'http://127.0.0.1:8000'.Storage::url('employee_profile_images/default.png'),
+                ],
+                'companyName' => $customer->company_name,
+                'officeNo' => 'CID-' . $customer->id,
+                'accountManager' => $customer->employee->name,
+                'status' => $customer->status,
+                'email' => $customer->email,
+                'expectedAmount' => 2500, // You'll need to replace this with actual data
+                'expectedDiscount' => 14, // You'll need to replace this with actual data
+                'joiningDate' => $customer->joining_date ? \Carbon\Carbon::parse($customer->joining_date)->format('d M, Y') : null,
+                'contractNo' => $customer->contracts->first() ? $customer->contracts->first()->contract_number : null,
+                'amount' => $customer->contracts->sum('contract_amount'),
+                'source' => $customer->source_type,
+                'validUntil' => $customer->contracts->first() ? \Carbon\Carbon::parse($customer->contracts->first()->expiry_date)->format('d M,Y') : null,
+                'nationality' => $customer->nationality,
+                'preferredLanguage' => $customer->preferred_language,
+                'address' => $customer->address,
+                'businessCategory' => $customer->business_category,
+                'country' => $customer->country,
+                'attachments' => $formattedAttachments,
+                'contracts' => $formattedContracts,
+                'notes' => $formattedNotes,
+            ];
+        });
+
+        return response()->json($transformedCustomers);
+    }
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
