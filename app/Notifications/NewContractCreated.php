@@ -30,6 +30,7 @@ class NewContractCreated extends Notification implements ShouldQueue
             'message' => 'A new contract has been created (Contract #'.$this->contract->contract_number.')',
             'contract_id' => $this->contract->id,
             'action_url' => '/contracts/'.$this->contract->id,
+            'type'=>'warning'
         ];
     }
 

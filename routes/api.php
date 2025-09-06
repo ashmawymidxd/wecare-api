@@ -15,8 +15,8 @@ use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\EmployeeNotificationController;
-use App\Http\Controllers\GeneralSettingsController;
 use App\Http\Controllers\LogsController;
+use App\Http\Controllers\DocumentController;
 
 Route::group([ 'prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -43,6 +43,8 @@ Route::group(['middleware' => 'auth:api'], function() {
     // employee
     Route::apiResource('employees', EmployeeController::class)->middleware('permission:manage-employees');
     Route::delete('employees/{employee}/attachments/{attachment}', [EmployeeController::class, 'deleteAttachment'])
+        ->middleware('permission:manage-employees');
+    Route::get('employees_account_mangers', [EmployeeController::class, 'accountMangersEmolyee'])
         ->middleware('permission:manage-employees');
     Route::post('/employees/transfer-customers', [EmployeeController::class, 'transferCustomers'])
         ->middleware('permission:manage-employees');
@@ -103,7 +105,7 @@ Route::group(['middleware' => 'auth:api'], function() {
         ->middleware('permission:manage-reports');
 
     // notifications
-   Route::prefix('employee/notifications')->middleware('permission:manage-notifications')->group(function () {
+    Route::prefix('employee/notifications')->middleware('permission:manage-notifications')->group(function () {
         Route::get('/', [EmployeeNotificationController::class, 'index']);
         Route::get('/unread', [EmployeeNotificationController::class, 'unread']);
         Route::get('/read', [EmployeeNotificationController::class, 'read']);
@@ -113,6 +115,9 @@ Route::group(['middleware' => 'auth:api'], function() {
 
     // logs
     Route::get('/logs', [LogsController::class, 'index'])->middleware('permission:manage-logs');
-    Route::get('settings', [GeneralSettingsController::class, 'index']);
+
+    // Info
+    // Route::apiResource('documents', DocumentController::class)->middleware('permission:manage-documents');
+    Route::apiResource('documents', DocumentController::class);
 
 });

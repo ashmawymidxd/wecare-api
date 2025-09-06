@@ -30,6 +30,7 @@ class ActionRequired extends Notification implements ShouldQueue
             'message' => 'Action Required: (Contract #'.$this->contract->contract_number.') for client '.$this->contract->customer->name.' requires admin approval to open a rental case',
             'contract_id' => $this->contract->id,
             'action_url' => '/contracts/'.$this->contract->id,
+            'type'=>'warning'
         ];
     }
 

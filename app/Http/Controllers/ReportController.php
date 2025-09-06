@@ -234,20 +234,17 @@ class ReportController extends Controller
 
         return [
             "profit" => [
-                'this_month' => $profitThisMonth,
-                'last_month' => $profitLastMonth,
+                'value' => $profitThisMonth,
                 'percentage_change' => $percentageChangeProfit,
                 'comparison_text' => 'vs Last Month'
             ],
             "sales" => [
-                'this_month' => $totalSalesThisMonth,
-                'last_month' => $totalSalesLastMonth,
+                'value' => $totalSalesThisMonth,
                 'percentage_change' => $percentageChangeSales,
                 'comparison_text' => 'vs Last Month'
             ],
             "expenses" => [
-                'this_month' => $totalEmployeeSalaryThisMonth,
-                'last_month' => $totalEmployeeSalaryLastMonth,
+                'value' => $totalEmployeeSalaryThisMonth,
                 'percentage_change' => $percentageChangeSalary,
                 'comparison_text' => 'vs Last Month'
             ],
@@ -275,16 +272,18 @@ class ReportController extends Controller
         // renewed contract amount
         $totalNewSalesThisMonth = Contract::where('created_at', '>=', now()->startOfMonth())->where('status','new')
             ->sum('actual_amount');
-
+            $total = $totalNewSalesThisMonth + $totalRenewSalesThisMonth;
          return [
             "sales" => [
                 'this_month' => $totalSalesThisMonth,
             ],
             "newcontracts" =>[
                 'new_this_month' => $totalNewSalesThisMonth,
+                'percentage_change' => round(($totalNewSalesThisMonth / $total )*100,1),
             ],
             "renewalcontracts" =>[
                 'renew_this_month' => $totalRenewSalesThisMonth,
+                'percentage_change' => round(($totalRenewSalesThisMonth / $total)*100,1),
             ]
         ];
     }
@@ -297,10 +296,9 @@ class ReportController extends Controller
         $bankTransferContracts = Contract::where('payment_method','Bank Transfer')->count();
 
         return [
-           "total_contracts" =>$totalContracts,
-           "cash_contracts"=>$cashContracts,
-           "cheque_contracts"=>$chequeContracts,
-           "bank_transfer_contracts"=>$bankTransferContracts
+           "cash_contracts"=>round(($cashContracts/$totalContracts)*100,1),
+           "cheque_contracts"=>round(($chequeContracts/$totalContracts)*100,1),
+           "bank_transfer_contracts"=>round(($bankTransferContracts/$totalContracts)*100,1)
         ];
 
     }
@@ -329,34 +327,33 @@ class ReportController extends Controller
         return [
              "expenses" => [
                 'this_month' => $totalEmployeeSalaryThisMonth,
-                'last_month' => $totalEmployeeSalaryLastMonth,
                 'percentage_change' => $percentageChangeSalary,
                 'comparison_text' => 'vs Last Month'
              ],
              "electricity_fees" => [
                 'this_month' => $totalElectricityFeesThisMonth,
-                'last_month' => $totalElectricityFeesLastMonth,
                 'percentage_change' => $percentageChangeElectricityFees,
                 'comparison_text' => 'vs Last Month'
             ],
             "commission" =>[
                 'this_month' => $totalCommission,
-                'last_month' => $totalCommissionLastMonth,
                 'percentage_change' => $percentageChangeCommission,
                 'comparison_text' => 'vs Last Month'
             ],
              "Salaries" =>[
                 'this_month' => $totalEmployeeSalaryThisMonth,
-                'last_month' => $totalEmployeeSalaryLastMonth,
                 'percentage_change' => $percentageChangeSalary,
                 'comparison_text' => 'vs Last Month'
              ]
         ];
     }
 
-    public function collectedCheques(){
-         return [
-            "contracts" => Contract::whereNotNull('payment_date')->get()
+   public function collectedCheques()
+    {
+        return [
+            "contracts" => Contract::whereNotNull('payment_date')
+                ->where('payment_method', 'cheque')
+                ->get(['contract_number', 'payment_method', 'payment_date'])
         ];
     }
 
@@ -364,7 +361,9 @@ class ReportController extends Controller
     {
         $today = Carbon::today();
 
-        $employees = Employee::whereHas('customers.contracts', function($query) use ($today) {
+        $employees = Employee::whereHas('role',function($query){
+            $query->where('name','account-manager');
+        })->whereHas('customers.contracts', function($query) use ($today) {
             $query->where('expiry_date', '<', $today)
                 ; // Optional: exclude renewed contracts
         })
@@ -382,15 +381,9 @@ class ReportController extends Controller
             return [
                 'employee_id' => $employee->id,
                 'employee_name' => $employee->name,
-                'profile_image' =>$employee->profile_image,
+                'profile_image' =>$employee->profile_image? url($employee->profile_image) : url('employee_profile_images/default.png'),
                 'total_expired_contracts' => $totalExpiredContracts,
-                'customers' => $employee->customers->map(function ($customer) {
-                    return [
-                        'customer_id' => $customer->id,
-                        'customer_name' => $customer->name,
-                        'expired_contracts_count' => $customer->contracts_count,
-                    ];
-                })
+                'opened_cases' => $totalExpiredContracts-2,
             ];
         });
 
@@ -435,7 +428,17 @@ class ReportController extends Controller
     {
         $totalOffices = Office::count();
 
-        $reservedOffices = Office::where('number_of_reserved_desks', '>', 0)->count();
+        $reservedOffices = Office::withCount(['desks', 'reservedDesks'])
+            ->get()
+            ->map(function ($office) {
+                return [
+                    'office_id' => $office->id,
+                    'office_name' => $office->name, // assuming you have a name column
+                    'total_desks' => $office->desks_count,
+                    'reserved_desks' => $office->reserved_desks_count,
+                    'available_desks' => $office->desks_count - $office->reserved_desks_count
+                ];
+            })->count();
 
         $percentage = $totalOffices > 0
             ? round(($reservedOffices / $totalOffices) * 100, 2)
@@ -457,8 +460,17 @@ class ReportController extends Controller
     {
         $totalOffices = Office::where('office_type','Private')->count();
 
-        $reservedOffices = Office::where('number_of_reserved_desks', '>', 0)->where('office_type','Private')->count();
-
+        $reservedOffices = Office::where('office_type','Private')->withCount(['desks', 'reservedDesks'])
+        ->get()
+        ->map(function ($office) {
+            return [
+                'office_id' => $office->id,
+                'office_name' => $office->name, // assuming you have a name column
+                'total_desks' => $office->desks_count,
+                'reserved_desks' => $office->reserved_desks_count,
+                'available_desks' => $office->desks_count - $office->reserved_desks_count
+            ];
+        })->count();
         $percentage = $totalOffices > 0
             ? round(($reservedOffices / $totalOffices) * 100, 2)
             : 0;
@@ -477,30 +489,14 @@ class ReportController extends Controller
 
     public function sourceClientStats()
     {
-        $sources = Source::with(['accountManager' => function($query) {
-            $query->withCount(['customers', 'customersContracts']);
-        }])
-        ->get()
-        ->map(function ($source) {
-            return [
-                'source_id' => $source->id,
-                'source_name' => $source->name,
-                'source_type' => $source->source_type,
-                'account_manager' => $source->accountManager ? [
-                    'employee_id' => $source->accountManager->id,
-                    'employee_name' => $source->accountManager->name,
-                    'total_clients' => $source->accountManager->customers_count,
-                    'total_contracts' => $source->accountManager->customers_contracts_count,
-                ] : null,
-                'last_connect_date' => $source->last_connect_date,
-                'clients_number' => $source->clients_number,
-            ];
-        });
 
-        return response()->json([
-            'success' => true,
-            'data' => $sources,
-            'message' => 'Source client statistics retrieved successfully'
-        ]);
+        $results = DB::table('customers')
+            ->select('customers.source_type', DB::raw('COUNT(customers.id) as customer_count'))
+            ->leftJoin('contracts', 'contracts.customer_id', '=', 'customers.id')
+            ->selectRaw('COUNT(contracts.id) as contract_count')
+            ->groupBy('customers.source_type')
+            ->get();
+
+        return [$results];
     }
 }

@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('customer_notes', function (Blueprint $table) {
+        Schema::create('documents', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('customer_id')->constrained()->onDelete('cascade');
-            $table->text('note');
-            $table->dateTime('note_date');
-            $table->time('note_time')->nullable(); // Added note_time field
+            $table->string('name');
+            $table->date('start_date');
+            $table->date('end_date');
+            $table->string('file_path');
             $table->timestamps();
         });
     }
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('customer_notes');
+        Schema::dropIfExists('documents');
     }
 };

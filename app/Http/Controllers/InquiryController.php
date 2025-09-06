@@ -12,7 +12,22 @@ class InquiryController extends Controller
     public function index()
     {
         $inquiries = Inquiry::with(['customer', 'source'])->get();
-        return response()->json($inquiries);
+        $transformedCustomers = $inquiries->map(function ($inquirie) {
+             return [
+                'id' => $inquirie->id,
+                'client' => [
+                    'name' => $inquirie->name,
+                    'phone' => $inquirie->mobile,
+                    'avatar' => $inquirie->profile_image ? url($inquirie->profile_image) :  url('employee_profile_images/default.png'),
+                ],
+                'companyName' => $inquirie->company_name,
+                'status' => $inquirie->status,
+                'expectedContractAmount' => $inquirie->expected_contract_amount,
+                'expectedDiscount' => $inquirie->expected_discount,
+                'joiningDate' =>  \Carbon\Carbon::parse($inquirie->joining_date)->format('d M, Y'),
+            ];
+        });
+        return response()->json($transformedCustomers);
     }
 
     public function store(Request $request)
@@ -44,8 +59,10 @@ class InquiryController extends Controller
 
         // Handle file upload
         if ($request->hasFile('profile_image')) {
-            $path = $request->file('profile_image')->store('public/inquiry_profile_images');
-            $data['profile_image'] = Storage::url($path);
+            $file = $request->file('profile_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('inquiry_profile_images'), $filename);
+            $data['profile_image'] = url('inquiry_profile_images/' . $filename);
         }
 
         $inquiry = Inquiry::create($data);
@@ -96,8 +113,7 @@ class InquiryController extends Controller
                 Storage::delete($oldImagePath);
             }
 
-            $path = $request->file('profile_image')->store('public/inquiry_profile_images');
-            $data['profile_image'] = Storage::url($path);
+            $data['profile_image'] = $request->file('profile_image')->store('inquiry_profile_images');
         }
 
         $inquiry->update($data);

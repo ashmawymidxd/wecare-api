@@ -17,6 +17,7 @@ class Employee extends Authenticatable implements JWTSubject
         'password',
         'role_id',
         'profile_image',
+        'nationality',
         'mobile',
         'preferred_language',
         'address',

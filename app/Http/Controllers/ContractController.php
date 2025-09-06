@@ -39,7 +39,7 @@ class ContractController extends Controller
             'desk_ids' => 'required|array',
             'desk_ids.*' => 'exists:desks,id',
             'contract_amount' => 'required|numeric|min:0',
-            'payment_method' => 'required|string|in:cash,cheque,bank_transfer',
+            'payment_method' => 'required|string|in:Cash,Cheque,Bank Transfer',
             'cheque_covered' => 'sometimes|boolean',
             'cash_amount' => 'nullable|numeric|min:0',
             'cheque_number' => 'nullable|string|required_if:payment_method,cheque',
@@ -56,7 +56,7 @@ class ContractController extends Controller
             'notes' => 'nullable|string',
             'contract_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
             'payment_proof_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
-            'status' => 'nullable|string|in:new,renewed,active,expiring,archived,pending,unused'
+            'status' => 'nullable|string|in:New,Renewed,Active,Expiring,Archived,Pending,Unused'
         ]);
 
         if ($validator->fails()) {

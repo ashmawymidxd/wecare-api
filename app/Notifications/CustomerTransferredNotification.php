@@ -50,7 +50,7 @@ class CustomerTransferredNotification extends Notification implements ShouldQueu
             'to_employee_name' => $this->toEmployee->name,
             'transferred_count' => $this->transferredCount,
             'message' => "{$this->transferredCount} customers transferred from {$this->fromEmployee->name} to {$this->toEmployee->name}",
-            'type' => 'customer.transferred'
+            'type' => 'info'
         ];
     }
 }

@@ -22,6 +22,7 @@ class EmployeeFactory extends Factory
             'email' => $this->faker->unique()->safeEmail(),
             'password' => bcrypt('password'), // default password
             'profile_image' => $this->faker->optional()->imageUrl(200, 200, 'people'),
+            'nationality' => $this->faker->optional(0.8)->country(),
             'mobile' => $this->faker->optional()->phoneNumber(),
             'preferred_language' => $this->faker->optional()->randomElement(['en', 'ar', 'fr', 'es']),
             'address' => $this->faker->optional()->address(),

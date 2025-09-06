@@ -30,7 +30,8 @@ class ContractExpiringNotification extends Notification implements ShouldQueue
             'message' => "Contract {$this->contractNumber} with {$this->customerName} expires in {$this->daysUntilExpiry} days (on {$this->expiryDate}).",
             'contract_number' => $this->contractNumber,
             'expiry_date' => $this->expiryDate,
-            'action_url' => "/contracts/{$this->contractNumber}"
+            'action_url' => "/contracts/{$this->contractNumber}",
+            'type'=>'info'
         ];
     }
 }

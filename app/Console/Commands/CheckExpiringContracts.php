@@ -24,7 +24,7 @@ class CheckExpiringContracts extends Command
 
         $expiringContracts = Contract::where('expiry_date', '<=', $thresholdDate)
             ->where('expiry_date', '>=', Carbon::now())
-            ->where('status', 'active') // Uncommented this as it's important
+            ->where('status', 'Active') // Uncommented this as it's important
             ->with(['customer', 'branch'])
             ->get();
 

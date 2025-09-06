@@ -1,2 +1,15 @@
 
 
+# Post http://127.0.0.1:8000/api/auth/login
+# Content-Type: application/json
+
+# {
+#     "email": "admin@gmail.com",
+#     "password": "admin1234"
+# }
+
+
+
+
+Get http://127.0.0.1:8000/api/auth/me
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NTMyMDYzOTQsImV4cCI6MTc1MzIwOTk5NCwibmJmIjoxNzUzMjA2Mzk0LCJqdGkiOiJOQ0c2QnVVTmVyS295S0lMIiwic3ViIjoiMSIsInBydiI6IjMyOTYzYTYwNmMyZjE3MWYxYzE0MzMxZTc2OTc2NmNkNTkxMmVkMTUifQ.Qb1Ibtjbu1XRBR_79EMwEMI6AhsK9e05i6KmiPasAkA

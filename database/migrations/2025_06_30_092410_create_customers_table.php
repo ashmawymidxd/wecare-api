@@ -33,8 +33,8 @@ return new class extends Migration
                 'Inactive'
             ])->nullable();
             $table->enum('status', [
-               "Active", "Inactive", "New"
-            ])->nullable();
+              'Active', 'Inactive', 'New', 'Pending', 'Expiring'
+            ])->default('Active');
             $table->string('profile_image')->nullable();
             $table->timestamps();
         });

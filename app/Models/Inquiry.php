@@ -25,7 +25,8 @@ class Inquiry extends Model
         'expected_contract_amount',
         'expected_discount',
         'customer_id',
-        'source_id'
+        'source_id',
+        'status'
     ];
 
     protected $casts = [

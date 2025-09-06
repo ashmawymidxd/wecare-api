@@ -4,11 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\ActivityLog;
-use App\Models\EmployeeAttachment;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Notifications\CustomerTransferredNotification;
@@ -24,6 +23,14 @@ class EmployeeController extends Controller
     {
         $employees = Employee::with(['role', 'attachments' , 'customers'])->get();
         return response()->json($employees);
+    }
+
+    public function accountMangersEmolyee(){
+        $account_manager_employees = Employee::whereHas('role',function($query){
+            $query->where('name','account-manager');
+        })->get();
+
+        return response()->json($account_manager_employees);
     }
 
     public function store(Request $request)
@@ -64,9 +71,12 @@ class EmployeeController extends Controller
 
         // Handle profile image upload
         if ($request->hasFile('profile_image')) {
-            $path = $request->file('profile_image')->store('public/employee_profile_images');
-            $data['profile_image'] = Storage::url($path);
+            $file = $request->file('profile_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('employee_profile_images'), $filename);
+            $data['profile_image'] = url('employee_profile_images/' . $filename);
         }
+
 
         $employee = Employee::create($data);
 
@@ -136,15 +146,26 @@ class EmployeeController extends Controller
 
         // Handle profile image upload
         if ($request->hasFile('profile_image')) {
-            // Delete old image if exists
+            // Delete old profile image if it exists
             if ($employee->profile_image) {
-                $oldImagePath = str_replace('/storage', 'public', $employee->profile_image);
-                Storage::delete($oldImagePath);
+                // Get relative path from the URL
+                $relativePath = str_replace(url('/') . '/', '', $employee->profile_image);
+                $imagePath = public_path($relativePath);
+
+                if (file_exists($imagePath)) {
+                    unlink($imagePath);
+                }
             }
 
-            $path = $request->file('profile_image')->store('public/employee_profile_images');
-            $data['profile_image'] = Storage::url($path);
+            // Upload new image
+            $file = $request->file('profile_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('employee_profile_images'), $filename);
+
+            // Save full URL
+            $data['profile_image'] = url('employee_profile_images/' . $filename);
         }
+
 
         $employee->update($data);
 
@@ -156,66 +177,102 @@ class EmployeeController extends Controller
 
     public function destroy(Employee $employee)
     {
-        // Delete profile image if exists
+        // Delete profile image if it exists
         if ($employee->profile_image) {
-            $imagePath = str_replace('/storage', 'public', $employee->profile_image);
-            Storage::delete($imagePath);
+            // Get the relative path from the URL
+            $relativePath = str_replace(url('/') . '/', '', $employee->profile_image);
+            $imagePath = public_path($relativePath);
+
+            if (file_exists($imagePath)) {
+                unlink($imagePath);
+            }
         }
 
         // Delete all attachments
         foreach ($employee->attachments as $attachment) {
-            Storage::delete(str_replace('/storage', 'public', $attachment->path));
+            $relativeAttachmentPath = str_replace(url('/') . '/', '', $attachment->path);
+            $attachmentFullPath = public_path($relativeAttachmentPath);
+
+            if (file_exists($attachmentFullPath)) {
+                unlink($attachmentFullPath);
+            }
+
             $attachment->delete();
         }
 
         $employee->delete();
+
         return response()->json(null, 204);
     }
+
 
     public function deleteAttachment(Employee $employee, $attachmentId)
     {
         $attachment = $employee->attachments()->findOrFail($attachmentId);
 
-        Storage::delete(str_replace('/storage', 'public', $attachment->path));
+        // Convert full URL to relative path
+        $relativePath = str_replace(url('/') . '/', '', $attachment->path);
+        $filePath = public_path($relativePath);
+
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+
         $attachment->delete();
 
         return response()->json(['message' => 'Attachment deleted successfully']);
     }
 
+
     protected function handleDocumentUploads(Request $request, Employee $employee)
     {
+        // Ensure folder exists
+        $uploadPath = public_path('employee_documents');
+        if (!file_exists($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+
         // Handle Client ID document
         if ($request->hasFile('client_id_document')) {
-            $path = $request->file('client_id_document')->store('public/employee_documents');
+            $file = $request->file('client_id_document');
+            $filename = time() . '_client_id_' . $file->getClientOriginalName();
+            $file->move($uploadPath, $filename);
+
             $employee->attachments()->create([
                 'type' => 'client_id',
-                'name' => $request->file('client_id_document')->getClientOriginalName(),
-                'path' => Storage::url($path)
+                'name' => $file->getClientOriginalName(),
+                'path' => url('employee_documents/' . $filename),
             ]);
         }
 
         // Handle Company License document
         if ($request->hasFile('company_license_document')) {
-            $path = $request->file('company_license_document')->store('public/employee_documents');
+            $file = $request->file('company_license_document');
+            $filename = time() . '_license_' . $file->getClientOriginalName();
+            $file->move($uploadPath, $filename);
+
             $employee->attachments()->create([
                 'type' => 'company_license',
-                'name' => $request->file('company_license_document')->getClientOriginalName(),
-                'path' => Storage::url($path)
+                'name' => $file->getClientOriginalName(),
+                'path' => url('employee_documents/' . $filename),
             ]);
         }
 
         // Handle other documents
         if ($request->hasFile('other_documents')) {
             foreach ($request->file('other_documents') as $file) {
-                $path = $file->store('public/employee_documents');
+                $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                $file->move($uploadPath, $filename);
+
                 $employee->attachments()->create([
                     'type' => 'other',
                     'name' => $file->getClientOriginalName(),
-                    'path' => Storage::url($path)
+                    'path' => url('employee_documents/' . $filename),
                 ]);
             }
         }
     }
+
 
     public function transferCustomers(Request $request)
     {

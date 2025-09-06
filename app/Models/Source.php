@@ -29,9 +29,4 @@ class Source extends Model
         'last_connect_date' => 'date',
     ];
 
-
-    public function customers()
-    {
-        return $this->hasMany(Customer::class);
-    }
 }

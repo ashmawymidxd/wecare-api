@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Storage;
 use App\Models\Customer;
 use App\Models\Contract;
 use App\Models\Source;
@@ -310,7 +309,7 @@ class DashboardController extends Controller
             'key' => $contract->customer->id,
             'id' => $contract->customer->id,
             'client' => $contract->customer->name,
-            'avatar' => $contract->customer->profile_image ? Storage::url($contract->customer->profile_image) : Storage::url('customer_profile_images/default.png'),
+            'avatar' => $contract->customer->profile_image ? url($contract->customer->profile_image) : url('customer_profile_images/default.png'),
             'expirationDate' => $contract->expiry_date->format('F j, Y'),
             'accManager' => $contract->customer->employee->name ?? null, // Add employee name
         ];
@@ -341,11 +340,11 @@ class DashboardController extends Controller
                     }])
                     ->get()
                     ->sum('contracts_count');
-                    
+
                 return [
                     'key' => $employee->id,
                     'manager' => $employee->name,
-                    'avatar' => $employee->profile_image ? Storage::url($employee->profile_image) : Storage::url('employee_profile_images/default.png'),
+                    'avatar' => $employee->profile_image ? url($employee->profile_image) : url('employee_profile_images/default.png'),
                     'customers' => $employee->total_customers,
                     'target' => $customersWithContracts,
                     'renewals' => $totalRenewedContracts,

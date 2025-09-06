@@ -9,7 +9,7 @@ class CustomerNote extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['customer_id', 'note', 'note_date'];
+    protected $fillable = ['customer_id', 'note', 'note_date' , 'note_time'];
 
     protected $dates = ['note_date'];
 

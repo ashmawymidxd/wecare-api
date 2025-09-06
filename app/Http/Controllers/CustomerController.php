@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
 
 class CustomerController extends Controller
 {
-   public function index()
+    public function index()
     {
         $customers = Customer::with(['attachments', 'notes', 'contracts'])->get();
 
@@ -44,32 +44,17 @@ class CustomerController extends Controller
             ];
 
             return [
-                'id' => 'KD-' . $customer->id,
+                'key' => 'KD-' . $customer->id,
+                'id' => $customer->id,
                 'client' => [
                     'name' => $customer->name,
                     'phone' => $customer->mobile,
-                    'avatar' => $customer->profile_image ? Storage::url($customer->profile_image) :  'http://127.0.0.1:8000'.Storage::url('employee_profile_images/default.png'),
+                    'avatar' => $customer->profile_image ? url($customer->profile_image) :  url('employee_profile_images/default.png'),
                 ],
                 'companyName' => $customer->company_name,
                 'officeNo' => 'CID-' . $customer->id,
                 'accountManager' => $customer->employee->name,
                 'status' => $customer->status,
-                'email' => $customer->email,
-                'expectedAmount' => 2500, // You'll need to replace this with actual data
-                'expectedDiscount' => 14, // You'll need to replace this with actual data
-                'joiningDate' => $customer->joining_date ? \Carbon\Carbon::parse($customer->joining_date)->format('d M, Y') : null,
-                'contractNo' => $customer->contracts->first() ? $customer->contracts->first()->contract_number : null,
-                'amount' => $customer->contracts->sum('contract_amount'),
-                'source' => $customer->source_type,
-                'validUntil' => $customer->contracts->first() ? \Carbon\Carbon::parse($customer->contracts->first()->expiry_date)->format('d M,Y') : null,
-                'nationality' => $customer->nationality,
-                'preferredLanguage' => $customer->preferred_language,
-                'address' => $customer->address,
-                'businessCategory' => $customer->business_category,
-                'country' => $customer->country,
-                'attachments' => $formattedAttachments,
-                'contracts' => $formattedContracts,
-                'notes' => $formattedNotes,
             ];
         });
 
@@ -101,11 +86,24 @@ class CustomerController extends Controller
 
         // Handle profile image upload
         if ($request->hasFile('profile_image')) {
-            $path = $request->file('profile_image')->store('public/customer_profile_images');
-            $data['profile_image'] = Storage::url($path);
+            $file = $request->file('profile_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('customer_profile_images'), $filename);
+            $data['profile_image'] = url('customer_profile_images/' . $filename);
         }
 
+
         $customer = Customer::create($data);
+
+        // handel note and attachment uploads
+        if ($request->has('note')) {
+             $noteData = [
+                'note' => $request->note,
+                'note_date' => $request->note_date ?? now(),
+                'note_time' => $request->note_time ?? now()->format('H:i'),
+            ];
+            $customer->notes()->create($noteData);
+        }
 
         // Handle document uploads
         $this->handleDocumentUploads($request, $customer);
@@ -116,7 +114,7 @@ class CustomerController extends Controller
 
     public function show($id)
     {
-        $customer = Customer::with(['attachments', 'notes'])->findOrFail($id);
+        $customer = Customer::with(['attachments', 'notes','contracts'])->findOrFail($id);
         return response()->json($customer);
     }
 
@@ -213,51 +211,70 @@ class CustomerController extends Controller
         }
 
         $file = $request->file('file');
-        $path = $file->store('customer_attachments');
+        $filename = time() . '_' . $file->getClientOriginalName();
 
+        // Ensure the directory exists
+        $destinationPath = public_path('customer_attachments');
+        if (!file_exists($destinationPath)) {
+            mkdir($destinationPath, 0755, true);
+        }
+
+        // Move file to public path
+        $file->move($destinationPath, $filename);
+
+        // Save attachment with full URL
         $attachment = $customer->attachments()->create([
             'type' => $request->type,
-            'file_path' => $path,
+            'file_path' => url('customer_attachments/' . $filename),
             'original_name' => $file->getClientOriginalName(),
         ]);
 
         return response()->json($attachment, 201);
     }
 
+
     protected function handleDocumentUploads(Request $request, Customer $customer)
     {
         // Handle Client ID document
         if ($request->hasFile('client_id_document')) {
-            $path = $request->file('client_id_document')->store('public/customer_documents');
+            $file = $request->file('client_id_document');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('client_id_document'), $filename);
+
             $customer->attachments()->create([
                 'type' => 'client_id_document',
-                'original_name' => $request->file('client_id_document')->getClientOriginalName(),
-                'file_path' => Storage::url($path)
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => url('client_id_document/' . $filename),
             ]);
         }
 
         // Handle Company License document
         if ($request->hasFile('company_license_document')) {
-            $path = $request->file('company_license_document')->store('public/customer_documents');
+            $file = $request->file('company_license_document');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('company_license_document'), $filename);
+
             $customer->attachments()->create([
                 'type' => 'company_license_document',
-                'original_name' => $request->file('company_license_document')->getClientOriginalName(),
-                'file_path' => Storage::url($path)
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => url('company_license_document/' . $filename),
             ]);
         }
 
         // Handle other documents
         if ($request->hasFile('other_documents')) {
-            foreach ($request->file('other_documents') as $file) {
-                $path = $file->store('public/customer_documents');
-                $customer->attachments()->create([
-                    'type' => 'other_documents',
-                    'original_name' => $file->getClientOriginalName(),
-                    'file_path' => Storage::url($path)
-                ]);
-            }
+            $file = $request->file('other_documents');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('other_documents'), $filename);
+
+            $customer->attachments()->create([
+                'type' => 'other_documents',
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => url('other_documents/' . $filename),
+            ]);
         }
     }
+
 
     public function addNote(Request $request, $customerId)
     {
@@ -266,6 +283,7 @@ class CustomerController extends Controller
         $validator = Validator::make($request->all(), [
             'note' => 'required|string',
             'note_date' => 'nullable|date',
+            'note_time' => 'nullable|date_format:H:i',
         ]);
 
         if ($validator->fails()) {

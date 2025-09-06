@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Source;
 use App\Models\Employee;
 use App\Models\ActivityLog;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -12,17 +13,46 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 class SourceController extends Controller
 {
-    public function index()
+   public function index()
     {
-        $sources = Source::with('accountManager');
-        // $sources = Source::where('source_type','Tasheel')->with('accountManager');
-        $sources = $sources->orderBy('last_connect_date', 'desc')->get();
+        $sources = Source::with('accountManager')->get();
+
+        $result = $sources->map(function ($source) {
+            // Count customers with the same source_type
+            $clientCount = Customer::where('source_type', $source->source_type)->count();
+
+            return [
+                'id' => $source->id,
+                'name' => $source->name,
+                'account_manager' => $source->accountManager ? $source->accountManager->name : null,
+                'clients_count' => $clientCount,
+                'created_at' => $source->created_at->format('Y-m-d H:i:s'),
+                'source_type' => $source->source_type,
+                'last_connect_date' => $source->last_connect_date ? $source->last_connect_date->format('Y-m-d') : null
+            ];
+        });
+
+        // Get total counts
+        $totalSources = Source::count();
+        $totalClients = Customer::count();
+        // Group by source_type for tab counts
+        $sourceTypeCounts = $sources->groupBy('source_type')->map->count();
+        $inactiveCount = $sources->where('last_connect_date', '<', now()->subMonths(6))->count();
 
         return response()->json([
-            'data' => $sources,
+            'data' => $result,
             'meta' => [
-                'total_sources' => $sources->count(),
-                'total_clients' => $sources->sum('clients_number')
+                'total_sources' => $totalSources,
+                'total_clients' => $totalClients,
+                'source_type_counts' => [
+                    'All' => $totalSources,
+                    'Tasheel' => $sourceTypeCounts['Tasheel'] ?? 0,
+                    'Typing Center' => $sourceTypeCounts['Typing Center'] ?? 0,
+                    'PRO' => $sourceTypeCounts['PRO'] ?? 0,
+                    'Social Media' => $sourceTypeCounts['Social Media'] ?? 0,
+                    'Referral' => $sourceTypeCounts['Referral'] ?? 0,
+                    'Inactive' => $inactiveCount,
+                ]
             ]
         ]);
     }

@@ -30,6 +30,7 @@ class Clearancedocuments extends Notification implements ShouldQueue
             'message' => 'Reminder: Clearance documents (Contract #'.$this->contract->contract_number.') for client '.$this->contract->customer->name.' are still pending. Please upload them to proceed',
             'contract_id' => $this->contract->id,
             'action_url' => '/contracts/'.$this->contract->id,
+            'type'=>'info',
         ];
     }
 

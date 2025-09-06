@@ -19,9 +19,14 @@ class Office extends Model
         return $this->belongsTo(Room::class);
     }
 
-     public function desks()
+    public function desks()
     {
         return $this->hasMany(Desk::class);
+    }
+    
+     public function reservedDesks()
+    {
+        return $this->hasMany(Desk::class)->where('status', 'reserved');
     }
 
     // Helper method to get the main desk (for private offices)

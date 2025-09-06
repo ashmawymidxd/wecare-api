@@ -30,6 +30,7 @@ class PaymentContract extends Notification implements ShouldQueue
             'message' => 'Payment for (Contract #'.$this->contract->contract_number.') for client '.$this->contract->customer->name.' is due on '.$this->contract->payment_date->format('Y-m-d'),
             'contract_id' => $this->contract->id,
             'action_url' => '/contracts/'.$this->contract->id,
+            'type'=>'warning'
         ];
     }
 
