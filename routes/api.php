@@ -93,8 +93,8 @@ Route::group(['middleware' => 'auth:api'], function() {
         ->middleware('permission:manage-contracts');
     Route::delete('contracts/{contract}/attachments/{attachment}', [ContractController::class, 'deleteAttachment'])
         ->middleware('permission:manage-contracts');
-    Route::post('/contracts/{id}/renew', [ContractController::class, 'renew'])->middleware('permission:manage-contracts');
-    Route::patch('/contracts/{id}/status', [ContractController::class, 'updateStatus'])->middleware('permission:manage-contracts');
+    Route::patch('/contracts/{id}/renew', [ContractController::class, 'renew'])->middleware('permission:manage-contracts');
+    Route::patch('/contracts/{id}/cancel', [ContractController::class, 'updateStatus'])->middleware('permission:manage-contracts');
 
     // Inquiries
     Route::apiResource('inquiries', InquiryController::class)->middleware('permission:manage-inquiries');

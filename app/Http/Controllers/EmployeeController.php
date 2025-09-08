@@ -21,7 +21,10 @@ class EmployeeController extends Controller
 
     public function index()
     {
-        $employees = Employee::with(['role', 'attachments' , 'customers'])->get();
+        $employees = Employee::with(['role', 'attachments'])
+            ->withCount('customers') // adds customers_count column
+            ->get();
+
         return response()->json($employees);
     }
 
@@ -89,9 +92,8 @@ class EmployeeController extends Controller
     public function show(Employee $employee)
     {
         return response()->json([
-            'employee' => $employee->load(['role', 'attachments', 'customers']),
+            'employee' => $employee->load(['role', 'attachments']),
             'statistics' => [
-                "customers"=>$employee->customerStat(),
                 "contracts"=>$employee->contractStats(),
                 "expired_contracts"=>$employee->expiredContractStats(),
                 "average_contracts_amount"=>$employee->averageContractAmountStats(),

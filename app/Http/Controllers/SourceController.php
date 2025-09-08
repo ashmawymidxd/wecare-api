@@ -145,12 +145,7 @@ class SourceController extends Controller
             'phone_number' => 'nullable|string|max:20',
             'nationality' => 'nullable|string|max:100',
             'preferred_language' => 'nullable|string|max:100',
-            'account_manager_id' => [
-                'nullable',
-                Rule::exists('employees', 'id')->where(function ($query) {
-                    $query->where('is_active', true);
-                })
-            ],
+            'account_manager_id' => 'nullable|exists:employees,id',
             'last_connect_date' => 'nullable|date|before_or_equal:today',
             'clients_number' => 'nullable|integer|min:0',
             'source_type' => 'sometimes|required|in:Tasheel,Typing Center,PRO,Social Media,Referral,Inactive',

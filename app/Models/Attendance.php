@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,7 +8,12 @@ class Attendance extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['employee_id', 'login_time', 'logout_time'];
+    protected $fillable = [
+        'employee_id',
+        'day',
+        'login_time',
+        'logout_time',
+    ];
 
     public function employee()
     {

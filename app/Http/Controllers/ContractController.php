@@ -39,7 +39,7 @@ class ContractController extends Controller
             'desk_ids' => 'required|array',
             'desk_ids.*' => 'exists:desks,id',
             'contract_amount' => 'required|numeric|min:0',
-            'payment_method' => 'required|string|in:Cash,Cheque,Bank Transfer',
+            'payment_method' => 'sometimes|required|string|in:cash,cheque,bank_transfer',
             'cheque_covered' => 'sometimes|boolean',
             'cash_amount' => 'nullable|numeric|min:0',
             'cheque_number' => 'nullable|string|required_if:payment_method,cheque',
@@ -56,7 +56,7 @@ class ContractController extends Controller
             'notes' => 'nullable|string',
             'contract_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
             'payment_proof_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
-            'status' => 'nullable|string|in:New,Renewed,Active,Expiring,Archived,Pending,Unused'
+            'status' => 'nullable|string|in:New,Renewed,Active,Expiring,Archived,Pending,Unused,Cancelled'
         ]);
 
         if ($validator->fails()) {
@@ -90,7 +90,7 @@ class ContractController extends Controller
             // Attach desks
             $contract->desks()->attach($request->desk_ids);
 
-            // Update desk statuses
+            // Update desk status
             Desk::whereIn('id', $request->desk_ids)->update(['status' => 'booked']);
             Log::info('Contract created successfully', ['contract_id' => $contract->id, 'contract_number' => $contract->contract_number]);
 
@@ -165,6 +165,7 @@ class ContractController extends Controller
             return response()->json(['message' => 'Contract creation failed'], 500);
         }
     }
+
     public function show($id)
     {
         $contract = Contract::with(['customer', 'branch', 'attachments','desks'])->findOrFail($id);
@@ -182,7 +183,6 @@ class ContractController extends Controller
             'office_type' => 'sometimes|required|string',
             'city' => 'sometimes|required|string',
             'branch_id' => 'sometimes|required|exists:branches,id',
-            'number_of_desks' => 'sometimes|required|integer|min:1',
             'contract_amount' => 'sometimes|required|numeric|min:0',
             'payment_method' => 'sometimes|required|string|in:cash,cheque,bank_transfer',
             'cheque_covered' => 'sometimes|boolean',
@@ -201,7 +201,7 @@ class ContractController extends Controller
             'notes' => 'nullable|string',
             'contract_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
             'payment_proof_file' => 'sometimes|file|mimes:pdf,jpg,png|max:2048',
-            'status' => 'sometimes|string|in:active,expired,renewed,terminated'
+            'status' => 'nullable|string|in:New,Renewed,Active,Expiring,Archived,Pending,Unused,Cancelled'
         ]);
 
         if ($validator->fails()) {
@@ -290,7 +290,7 @@ class ContractController extends Controller
             'actual_amount' => $data['actual_amount'],
             'payment_date' => $data['payment_date'] ?? $originalContract->payment_date,
             'notes' => $data['notes'] ?? $originalContract->notes,
-            'status' => 'active',
+            'status' => 'Renewed',
             'renewed_from_id' => $originalContract->id
         ];
 
@@ -320,7 +320,7 @@ class ContractController extends Controller
         $contract = Contract::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'status' => 'required|string|in:active,expired,renewed,terminated',
+            'status' => 'required|string|in:New,Renewed,Active,Expiring,Archived,Pending,Unused,Cancelled',
             'notes' => 'nullable|string'
         ]);
 

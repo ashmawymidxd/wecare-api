@@ -34,7 +34,8 @@ class AuthController extends Controller
         // Record attendance
         Attendance::create([
             'employee_id' => auth()->user()->id,
-            'login_time' => now(),
+            'day' => now()->toDateString(),
+            'login_time' => now()->toTimeString(),
         ]);
 
         return $this->createNewToken($token);

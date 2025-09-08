@@ -51,6 +51,7 @@
             font-size: 0.9rem;
             font-weight: bold;
             letter-spacing: 0.5px;
+            text-decoration: none;
         }
 
         footer {
@@ -63,13 +64,13 @@
 
 <body>
     <div class="card">
-        <h1>Welcome to Wecare API</h1>
+        <h1>Welcome To Wecare API</h1>
         <p>
             This API is designed to manage <strong>desk and room reservations</strong>
             across multiple branches and resources.
             <br />Simple, fast, and reliable for your workspace needs.
         </p>
-        <span class="badge">API System Ready</span>
+        <a href="https://we-care-khaki.vercel.app/" target="__blanck" class="badge">API System Ready</a>
         <footer>© 2025 Wecare | Desk & Room Reservation API</footer>
     </div>
 </body>

@@ -119,10 +119,11 @@ class Employee extends Authenticatable implements JWTSubject
         return $this->hasMany(Attendance::class);
     }
 
-    // Add this method to get attendance records
     public function getAttendance()
     {
-        return $this->attendances()->orderBy('login_time', 'desc')->get();
+        return $this->attendances()
+            ->orderBy('day', 'desc')
+            ->get(['day', 'login_time as time']);
     }
 
 }
