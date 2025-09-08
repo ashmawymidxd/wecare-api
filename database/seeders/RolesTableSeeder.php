@@ -29,7 +29,8 @@ class RolesTableSeeder extends Seeder
                     'manage-reports',
                     'manage-notifications',
                     'manage-logs',
-                    'manage-documents'
+                    'manage-documents',
+                    'manage-settings'
                 ]
             ],
             [

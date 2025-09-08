@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             RoomSeeder::class,
             OfficeSeeder::class,
             ContractSeeder::class,
+            GeneralSettingsSeeder::class,
         ]);
     }
 }

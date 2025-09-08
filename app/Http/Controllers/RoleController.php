@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Role;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -47,7 +48,17 @@ class RoleController extends Controller
 
     public function show(Role $role)
     {
-        return response()->json($role);
+        $employees = Employee::where('role_id', $role->id)->get();
+
+        return response()->json([
+            'role' => $role,
+            'employees' => $employees->map(function($employee) {
+                return [
+                    'name' => $employee->name,
+                    'assigned_at' => $employee->created_at->format('j F Y g:i A'),
+                ];
+            }),
+        ]);
     }
 
     public function update(Request $request, Role $role)

@@ -17,6 +17,9 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\EmployeeNotificationController;
 use App\Http\Controllers\LogsController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\GeneralSettingController;
+use App\Http\Controllers\RoleSettingsController;
+use App\Http\Controllers\NotificationSettingController;
 
 Route::group([ 'prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -117,7 +120,19 @@ Route::group(['middleware' => 'auth:api'], function() {
     Route::get('/logs', [LogsController::class, 'index'])->middleware('permission:manage-logs');
 
     // Info
-    // Route::apiResource('documents', DocumentController::class)->middleware('permission:manage-documents');
-    Route::apiResource('documents', DocumentController::class);
+    Route::apiResource('documents', DocumentController::class)->middleware('permission:manage-documents');
+
+    // settings with permissions
+    Route::prefix('settings')->middleware('permission:manage-settings')->group(function () {
+        // general settings
+        Route::get('/general', [GeneralSettingController::class, 'index']);
+        Route::put('/general', [GeneralSettingController::class, 'update']);
+        // role settings
+        Route::get('/roles', [RoleSettingsController::class, 'index']);
+        // notifications
+        Route::get('/notifications', [NotificationSettingController::class, 'index']);
+        Route::put('/notifications', [NotificationSettingController::class, 'update']);
+        Route::get('/notifications/{employeeId}', [NotificationSettingController::class, 'show']);
+    });
 
 });
