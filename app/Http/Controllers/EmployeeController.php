@@ -31,7 +31,12 @@ class EmployeeController extends Controller
     public function accountMangersEmolyee(){
         $account_manager_employees = Employee::whereHas('role',function($query){
             $query->where('name','account-manager');
-        })->get();
+        })->get()->map(function ($account_manager_employees) {
+            return [
+            'id' => $account_manager_employees->id,
+            'name' => $account_manager_employees->name,
+            ];
+        });
 
         return response()->json($account_manager_employees);
     }
