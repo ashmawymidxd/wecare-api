@@ -9,9 +9,14 @@ use Illuminate\Support\Str;
 
 class DocumentController extends Controller
 {
+    // public function index()
+    // {
+    //     return Document::all();
+    // }
+
     public function index()
     {
-        return Document::all();
+        return Document::paginate(15);
     }
 
     public function store(Request $request)

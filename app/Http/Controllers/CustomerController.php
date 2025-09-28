@@ -11,11 +11,64 @@ use Illuminate\Support\Facades\Storage;
 
 class CustomerController extends Controller
 {
+    // public function index()
+    // {
+    //     $customers = Customer::with(['attachments', 'notes', 'contracts'])->get();
+
+    //     $transformedCustomers = $customers->map(function ($customer) {
+    //         // Format contracts
+    //         $formattedContracts = $customer->contracts->map(function ($contract) {
+    //             return [
+    //                 'contractNumber' => $contract->contract_number,
+    //                 'startDate' => $contract->start_date ? \Carbon\Carbon::parse($contract->start_date)->format('d M, Y') : null,
+    //                 'endDate' => $contract->expiry_date ? \Carbon\Carbon::parse($contract->expiry_date)->format('d M, Y') : null,
+    //                 'amount' => $contract->contract_amount ? number_format($contract->contract_amount, 0) . ' AED' : null,
+    //                 'status' => $contract->status,
+    //                 'validUntil' => $contract->expiry_date ? \Carbon\Carbon::parse($contract->expiry_date)->format('d M,Y') : 'Waiting For Payment',
+    //             ];
+    //         });
+
+    //         // Format notes
+    //         $formattedNotes = $customer->notes->map(function ($note) {
+    //             return [
+    //                 'id' => 'CID-' . $note->id,
+    //                 'dateAdded' => $note->created_at ? \Carbon\Carbon::parse($note->created_at)->format('d M, Y') : null,
+    //                 'addedBy' => 'Ahmed Ali', // You'll need to replace this with actual user data
+    //             ];
+    //         });
+
+    //         // Format attachments (assuming you have specific attachment types)
+    //         $formattedAttachments = [
+    //             'clientId' => 'Client ID.PDF', // Replace with actual data
+    //             'companyLicense' => 'Company License.PDF', // Replace with actual data
+    //         ];
+
+    //         return [
+    //             'key' => 'KD-' . $customer->id,
+    //             'id' => $customer->id,
+    //             'client' => [
+    //                 'name' => $customer->name,
+    //                 'phone' => $customer->mobile,
+    //                 'avatar' => $customer->profile_image ? url($customer->profile_image) :  url('employee_profile_images/default.png'),
+    //             ],
+    //             'companyName' => $customer->company_name,
+    //             'officeNo' => 'CID-' . $customer->id,
+    //             'accountManager' => $customer->employee->name,
+    //             'status' => $customer->status,
+    //         ];
+    //     });
+
+    //     return response()->json($transformedCustomers);
+    // }
+
     public function index()
     {
-        $customers = Customer::with(['attachments', 'notes', 'contracts'])->get();
+        // Add pagination with eager loading
+        $customers = Customer::with(['attachments', 'notes', 'contracts', 'employee'])
+            ->paginate(10); // You can adjust the number per page
 
-        $transformedCustomers = $customers->map(function ($customer) {
+        // Transform the paginated data - use items() instead of getCollection()
+        $transformedCustomers = collect($customers->items())->map(function ($customer) {
             // Format contracts
             $formattedContracts = $customer->contracts->map(function ($contract) {
                 return [
@@ -49,17 +102,29 @@ class CustomerController extends Controller
                 'client' => [
                     'name' => $customer->name,
                     'phone' => $customer->mobile,
-                    'avatar' => $customer->profile_image ? url($customer->profile_image) :  url('employee_profile_images/default.png'),
+                    'avatar' => $customer->profile_image ? url($customer->profile_image) : url('employee_profile_images/default.png'),
                 ],
                 'companyName' => $customer->company_name,
                 'officeNo' => 'CID-' . $customer->id,
-                'accountManager' => $customer->employee->name,
+                'accountManager' => $customer->employee->name ?? 'N/A', // Added null check
                 'status' => $customer->status,
             ];
         });
 
-        return response()->json($transformedCustomers);
+        // Return paginated response with metadata
+        return response()->json([
+            'data' => $transformedCustomers,
+            'pagination' => [
+                'current_page' => $customers->currentPage(),
+                'per_page' => $customers->perPage(),
+                'total' => $customers->total(),
+                'last_page' => $customers->lastPage(),
+                'from' => $customers->firstItem(),
+                'to' => $customers->lastItem(),
+            ]
+        ]);
     }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [

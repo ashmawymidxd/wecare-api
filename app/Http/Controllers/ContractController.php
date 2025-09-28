@@ -18,10 +18,27 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 class ContractController extends Controller
 {
+    // public function index()
+    // {
+    //     $contracts = Contract::with(['customer', 'branch', 'attachments','desks'])->get();
+    //     return response()->json($contracts);
+    // }
+
     public function index()
     {
-        $contracts = Contract::with(['customer', 'branch', 'attachments','desks'])->get();
-        return response()->json($contracts);
+        $contracts = Contract::with(['customer', 'branch', 'attachments', 'desks'])->paginate(10);
+
+        return response()->json([
+            'data' => $contracts->items(),
+            'pagination' => [
+                'current_page' => $contracts->currentPage(),
+                'per_page' => $contracts->perPage(),
+                'total' => $contracts->total(),
+                'last_page' => $contracts->lastPage(),
+                'from' => $contracts->firstItem(),
+                'to' => $contracts->lastItem(),
+            ]
+        ]);
     }
 
     public function store(Request $request)

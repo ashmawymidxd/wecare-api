@@ -19,13 +19,32 @@ class EmployeeController extends Controller
         $this->middleware('permission:manage-employees');
     }
 
+    // public function index()
+    // {
+    //     $employees = Employee::with(['role', 'attachments'])
+    //         ->withCount('customers') // adds customers_count column
+    //         ->get();
+
+    //     return response()->json($employees);
+    // }
+
     public function index()
     {
         $employees = Employee::with(['role', 'attachments'])
             ->withCount('customers') // adds customers_count column
-            ->get();
+            ->paginate(10); // You can adjust the number per page
 
-        return response()->json($employees);
+        return response()->json([
+            'data' => $employees->items(),
+            'pagination' => [
+                'current_page' => $employees->currentPage(),
+                'per_page' => $employees->perPage(),
+                'total' => $employees->total(),
+                'last_page' => $employees->lastPage(),
+                'from' => $employees->firstItem(),
+                'to' => $employees->lastItem(),
+            ]
+        ]);
     }
 
     public function accountMangersEmolyee(){

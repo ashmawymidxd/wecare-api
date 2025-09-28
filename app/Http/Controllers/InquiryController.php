@@ -9,25 +9,62 @@ use Illuminate\Support\Facades\Storage;
 
 class InquiryController extends Controller
 {
+    // public function index()
+    // {
+    //     $inquiries = Inquiry::with(['customer', 'source'])->get();
+    //     $transformedCustomers = $inquiries->map(function ($inquirie) {
+    //          return [
+    //             'id' => $inquirie->id,
+    //             'client' => [
+    //                 'name' => $inquirie->name,
+    //                 'phone' => $inquirie->mobile,
+    //                 'avatar' => $inquirie->profile_image ? url($inquirie->profile_image) :  url('employee_profile_images/default.png'),
+    //             ],
+    //             'companyName' => $inquirie->company_name,
+    //             'status' => $inquirie->status,
+    //             'expectedContractAmount' => $inquirie->expected_contract_amount,
+    //             'expectedDiscount' => $inquirie->expected_discount,
+    //             'joiningDate' =>  \Carbon\Carbon::parse($inquirie->joining_date)->format('d M, Y'),
+    //         ];
+    //     });
+    //     return response()->json($transformedCustomers);
+    // }
+
     public function index()
     {
-        $inquiries = Inquiry::with(['customer', 'source'])->get();
-        $transformedCustomers = $inquiries->map(function ($inquirie) {
-             return [
-                'id' => $inquirie->id,
+        // Add pagination with eager loading
+        $inquiries = Inquiry::with(['customer', 'source'])
+            ->paginate(10); // You can adjust the number per page
+
+        // Transform the paginated data
+        $transformedInquiries = collect($inquiries->items())->map(function ($inquiry) {
+            return [
+                'id' => $inquiry->id,
                 'client' => [
-                    'name' => $inquirie->name,
-                    'phone' => $inquirie->mobile,
-                    'avatar' => $inquirie->profile_image ? url($inquirie->profile_image) :  url('employee_profile_images/default.png'),
+                    'name' => $inquiry->name,
+                    'phone' => $inquiry->mobile,
+                    'avatar' => $inquiry->profile_image ? url($inquiry->profile_image) : url('employee_profile_images/default.png'),
                 ],
-                'companyName' => $inquirie->company_name,
-                'status' => $inquirie->status,
-                'expectedContractAmount' => $inquirie->expected_contract_amount,
-                'expectedDiscount' => $inquirie->expected_discount,
-                'joiningDate' =>  \Carbon\Carbon::parse($inquirie->joining_date)->format('d M, Y'),
+                'companyName' => $inquiry->company_name,
+                'status' => $inquiry->status,
+                'expectedContractAmount' => $inquiry->expected_contract_amount,
+                'expectedDiscount' => $inquiry->expected_discount,
+                'joiningDate' => $inquiry->joining_date ? \Carbon\Carbon::parse($inquiry->joining_date)->format('d M, Y') : null,
             ];
         });
-        return response()->json($transformedCustomers);
+
+        // Return paginated response with metadata
+        return response()->json([
+            'data' => $transformedInquiries,
+            'pagination' => [
+                'current_page' => $inquiries->currentPage(),
+                'per_page' => $inquiries->perPage(),
+                'total' => $inquiries->total(),
+                'last_page' => $inquiries->lastPage(),
+                'from' => $inquiries->firstItem(),
+                'to' => $inquiries->lastItem(),
+            ]
+        ]);
     }
 
     public function store(Request $request)

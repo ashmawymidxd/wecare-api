@@ -13,11 +13,57 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 class SourceController extends Controller
 {
-   public function index()
-    {
-        $sources = Source::with('accountManager')->get();
+    // public function index()
+    // {
+    //     $sources = Source::with('accountManager')->get();
 
-        $result = $sources->map(function ($source) {
+    //     $result = $sources->map(function ($source) {
+    //         // Count customers with the same source_type
+    //         $clientCount = Customer::where('source_type', $source->source_type)->count();
+
+    //         return [
+    //             'id' => $source->id,
+    //             'name' => $source->name,
+    //             'account_manager' => $source->accountManager ? $source->accountManager->name : null,
+    //             'clients_count' => $clientCount,
+    //             'created_at' => $source->created_at->format('Y-m-d H:i:s'),
+    //             'source_type' => $source->source_type,
+    //             'last_connect_date' => $source->last_connect_date ? $source->last_connect_date->format('Y-m-d') : null
+    //         ];
+    //     });
+
+    //     // Get total counts
+    //     $totalSources = Source::count();
+    //     $totalClients = Customer::count();
+    //     // Group by source_type for tab counts
+    //     $sourceTypeCounts = $sources->groupBy('source_type')->map->count();
+    //     $inactiveCount = $sources->where('last_connect_date', '<', now()->subMonths(6))->count();
+
+    //     return response()->json([
+    //         'data' => $result,
+    //         'meta' => [
+    //             'total_sources' => $totalSources,
+    //             'total_clients' => $totalClients,
+    //             'source_type_counts' => [
+    //                 'All' => $totalSources,
+    //                 'Tasheel' => $sourceTypeCounts['Tasheel'] ?? 0,
+    //                 'Typing Center' => $sourceTypeCounts['Typing Center'] ?? 0,
+    //                 'PRO' => $sourceTypeCounts['PRO'] ?? 0,
+    //                 'Social Media' => $sourceTypeCounts['Social Media'] ?? 0,
+    //                 'Referral' => $sourceTypeCounts['Referral'] ?? 0,
+    //                 'Inactive' => $inactiveCount,
+    //             ]
+    //         ]
+    //     ]);
+    // }
+
+    public function index()
+    {
+        // Add pagination with eager loading
+        $sources = Source::with('accountManager')->paginate(10); // Adjust per page as needed
+
+        // Transform the paginated data
+        $result = collect($sources->items())->map(function ($source) {
             // Count customers with the same source_type
             $clientCount = Customer::where('source_type', $source->source_type)->count();
 
@@ -32,15 +78,28 @@ class SourceController extends Controller
             ];
         });
 
-        // Get total counts
+        // Get total counts (these queries remain the same as they're for meta data)
         $totalSources = Source::count();
         $totalClients = Customer::count();
-        // Group by source_type for tab counts
-        $sourceTypeCounts = $sources->groupBy('source_type')->map->count();
-        $inactiveCount = $sources->where('last_connect_date', '<', now()->subMonths(6))->count();
+
+        // Group by source_type for tab counts - we need to query separately for accurate counts
+        $sourceTypeCounts = Source::select('source_type')
+            ->selectRaw('COUNT(*) as count')
+            ->groupBy('source_type')
+            ->pluck('count', 'source_type');
+
+        $inactiveCount = Source::where('last_connect_date', '<', now()->subMonths(6))->count();
 
         return response()->json([
             'data' => $result,
+            'pagination' => [
+                'current_page' => $sources->currentPage(),
+                'per_page' => $sources->perPage(),
+                'total' => $sources->total(),
+                'last_page' => $sources->lastPage(),
+                'from' => $sources->firstItem(),
+                'to' => $sources->lastItem(),
+            ],
             'meta' => [
                 'total_sources' => $totalSources,
                 'total_clients' => $totalClients,
