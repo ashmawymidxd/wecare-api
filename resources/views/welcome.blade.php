@@ -16,7 +16,7 @@
         body {
             margin: 0;
             font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0a2a, #1a1a4a, #2a0a4a);
+            background: linear-gradient(135deg, red, orange, yellow);
             color: #fff;
             display: flex;
             justify-content: center;
@@ -73,7 +73,7 @@
         /* Card with magical effects */
         .card {
             margin: 10px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(253, 253, 253, 0.726);
             backdrop-filter: blur(10px);
             padding: 2.5rem;
             border-radius: 1.25rem;
@@ -90,7 +90,7 @@
         .card:hover {
             transform: translateY(-10px);
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
-            background: rgba(255, 255, 255, 0.15);
+            background: rgb(255, 255, 255);
         }
 
         .card::before {
@@ -113,7 +113,7 @@
         h1 {
             margin: 0;
             font-size: 2.5rem;
-            color: #ffcc00;
+            color: red;
             text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
             background: linear-gradient(45deg, #ffcc00, #ff9900);
             -webkit-background-clip: text;
@@ -135,7 +135,7 @@
         p {
             margin: 1rem 0;
             font-size: 1.1rem;
-            color: #e0e0ff;
+            color: black;
             line-height: 1.6;
         }
 
@@ -143,7 +143,7 @@
             display: inline-block;
             margin-top: 1rem;
             background: linear-gradient(45deg, #ffcc00, #ff9900);
-            color: #1a1a4a;
+            color: white;
             padding: 0.7rem 1.5rem;
             border-radius: 9999px;
             font-size: 1rem;
@@ -179,13 +179,13 @@
         footer{
             margin-top: 2rem;
             font-size: 0.85rem;
-            color: #aaaaff;
+            color: #000000;
         }
 
         a {
             margin-top: 2rem;
             font-size: 0.85rem;
-            color: #aaaaff;
+            color: #000000;
             margin-top: 20px
         }
         /* Floating elements */
