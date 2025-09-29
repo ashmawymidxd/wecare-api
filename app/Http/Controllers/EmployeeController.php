@@ -30,9 +30,10 @@ class EmployeeController extends Controller
 
     public function index()
     {
+        $Per_Page = request()->get('per_page',25);
         $employees = Employee::with(['role', 'attachments'])
             ->withCount('customers') // adds customers_count column
-            ->paginate(10); // You can adjust the number per page
+            ->paginate($Per_Page);
 
         return response()->json([
             'data' => $employees->items(),

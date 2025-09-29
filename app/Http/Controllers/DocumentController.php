@@ -16,7 +16,8 @@ class DocumentController extends Controller
 
     public function index()
     {
-        return Document::paginate(15);
+        $Per_Page = request()->get('per_page',25);
+        return Document::paginate($Per_Page);
     }
 
     public function store(Request $request)

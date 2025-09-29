@@ -59,8 +59,9 @@ class SourceController extends Controller
 
     public function index()
     {
+        $Per_Page = request()->get('per_page',25);
         // Add pagination with eager loading
-        $sources = Source::with('accountManager')->paginate(10); // Adjust per page as needed
+        $sources = Source::with('accountManager')->paginate($Per_Page);
 
         // Transform the paginated data
         $result = collect($sources->items())->map(function ($source) {

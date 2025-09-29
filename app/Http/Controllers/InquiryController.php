@@ -32,9 +32,10 @@ class InquiryController extends Controller
 
     public function index()
     {
+        $Per_Page = request()->get('per_page',25);
         // Add pagination with eager loading
         $inquiries = Inquiry::with(['customer', 'source'])
-            ->paginate(10); // You can adjust the number per page
+            ->paginate($Per_Page);
 
         // Transform the paginated data
         $transformedInquiries = collect($inquiries->items())->map(function ($inquiry) {

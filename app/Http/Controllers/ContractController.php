@@ -26,7 +26,8 @@ class ContractController extends Controller
 
     public function index()
     {
-        $contracts = Contract::with(['customer', 'branch', 'attachments', 'desks'])->paginate(10);
+        $Per_Page = request()->get('per_page',25);
+        $contracts = Contract::with(['customer', 'branch', 'attachments', 'desks'])->paginate($Per_Page);
 
         return response()->json([
             'data' => $contracts->items(),

@@ -63,9 +63,10 @@ class CustomerController extends Controller
 
     public function index()
     {
+        $Per_Page = request()->get('per_page',25);
         // Add pagination with eager loading
         $customers = Customer::with(['attachments', 'notes', 'contracts', 'employee'])
-            ->paginate(10); // You can adjust the number per page
+            ->paginate($Per_Page); // You can adjust the number per page
 
         // Transform the paginated data - use items() instead of getCollection()
         $transformedCustomers = collect($customers->items())->map(function ($customer) {
