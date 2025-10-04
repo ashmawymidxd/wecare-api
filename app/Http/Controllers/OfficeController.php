@@ -19,48 +19,53 @@ class OfficeController extends Controller
     }
 
     public function store(Request $request, $branchId, $roomId)
-    {
-        $room = Room::where('branch_id', $branchId)->findOrFail($roomId);
+{
+    // Validate the room belongs to the given branch
+    $room = Room::where('branch_id', $branchId)->findOrFail($roomId);
 
-        $validator = Validator::make($request->all(), [
-            'office_type' => 'required|in:private,shared',
-        ]);
+    // Validate the input
+    $validator = Validator::make($request->all(), [
+        'office_type' => 'required|in:private,shared',
+        'number_of_desks' => 'required_if:office_type,shared|integer|min:1'
+    ], [
+        'number_of_desks.required_if' => 'The number of desks is required for shared offices.',
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
-        $office = $room->offices()->create($validator->validated());
-
-        // // For private offices, create a single main desk
-        // if ($office->office_type === 'private') {
-        //     $office->desks()->create([
-        //         'desk_number' => 'main',
-        //         'status' => 'available'
-        //     ]);
-        // }
-
-        // For private offices, create a single main desk
-        if ($office->office_type === 'shared') {
-          $number_desks = $request->number_of_desks;
-          for ($i=0; $i < $number_desks; $i++) {
-                if ($i < 20) {
-                    $office->desks()->create([
-                        'desk_number' => 'A'.$i+1,
-                        'status' => 'available'
-                    ]);
-                }
-                elseif ($i > 20 && $i < 40) {
-                     $office->desks()->create([
-                        'desk_number' => 'B'.$i+1,
-                        'status' => 'available'
-                    ]);
-                }
-          }
-        }
-
-        return response()->json($office->load('desks'), 201);
+    if ($validator->fails()) {
+        return response()->json([
+            'errors' => $validator->errors()
+        ], 422);
     }
+
+    // Create the office
+    $office = $room->offices()->create([
+        'office_type' => $request->office_type,
+    ]);
+
+    // Create desks based on office type
+    if ($office->office_type === 'shared') {
+        $numberDesks = (int) $request->number_of_desks;
+
+        for ($i = 1; $i <= $numberDesks; $i++) {
+            $office->desks()->create([
+                'desk_number' => 'A' . $i,
+                'status' => 'available',
+            ]);
+        }
+    } else {
+        // Private office - create one main desk
+        $office->desks()->create([
+            'desk_number' => 'A1',
+            'status' => 'available',
+        ]);
+    }
+
+    return response()->json([
+        'message' => 'Office created successfully.',
+        'office' => $office->load('desks')
+    ], 201);
+}
+
 
     public function show($branchId, $roomId, $id)
     {

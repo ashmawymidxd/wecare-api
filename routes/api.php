@@ -58,6 +58,8 @@ Route::group(['middleware' => 'auth:api'], function() {
         ->middleware('permission:manage-sources');
     Route::get('/sources/by-manager/{managerId}', [SourceController::class, 'getSourcesByManager'])
         ->middleware('permission:manage-sources');
+    Route::post('/sources/{sourceId}/notes', [SourceController::class, 'addNote'])
+        ->middleware('permission:manage-sources');
 
     // customers
     Route::apiResource('customers', CustomerController::class)->middleware('permission:manage-customers');

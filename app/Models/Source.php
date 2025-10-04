@@ -25,6 +25,11 @@ class Source extends Model
         return $this->belongsTo(Employee::class, 'account_manager_id');
     }
 
+    public function notes()
+    {
+        return $this->hasMany(SourceNote::class);
+    }
+
     protected $casts = [
         'last_connect_date' => 'date',
     ];

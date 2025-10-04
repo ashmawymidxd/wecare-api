@@ -1,0 +1,21 @@
+POST http://127.0.0.1:8000/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "admin@gmail.com",
+    "password": "admin1234"
+}
+###
+
+GET http://127.0.0.1:8000/api/sources/1
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NTk1MTU3MTgsImV4cCI6MTc1OTUxOTMxOCwibmJmIjoxNzU5NTE1NzE4LCJqdGkiOiJpOXBBakNtUmt2STNkMnh5Iiwic3ViIjoiMSIsInBydiI6IjMyOTYzYTYwNmMyZjE3MWYxYzE0MzMxZTc2OTc2NmNkNTkxMmVkMTUifQ.pEQb2D_JMGqDMTTrYMcMCv23bYRTF6bc44-wAz9apbc
+###
+
+POST http://127.0.0.1:8000/api/sources/1/notes
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NTk1MTU3MTgsImV4cCI6MTc1OTUxOTMxOCwibmJmIjoxNzU5NTE1NzE4LCJqdGkiOiJpOXBBakNtUmt2STNkMnh5Iiwic3ViIjoiMSIsInBydiI6IjMyOTYzYTYwNmMyZjE3MWYxYzE0MzMxZTc2OTc2NmNkNTkxMmVkMTUifQ.pEQb2D_JMGqDMTTrYMcMCv23bYRTF6bc44-wAz9apbc
+Content-Type: application/json
+
+{
+    "note": "This source provided 10 new clients this week",
+    "date_added": "2025-10-03"
+}

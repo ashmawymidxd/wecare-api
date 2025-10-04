@@ -11,55 +11,6 @@ use Illuminate\Support\Facades\Storage;
 
 class CustomerController extends Controller
 {
-    // public function index()
-    // {
-    //     $customers = Customer::with(['attachments', 'notes', 'contracts'])->get();
-
-    //     $transformedCustomers = $customers->map(function ($customer) {
-    //         // Format contracts
-    //         $formattedContracts = $customer->contracts->map(function ($contract) {
-    //             return [
-    //                 'contractNumber' => $contract->contract_number,
-    //                 'startDate' => $contract->start_date ? \Carbon\Carbon::parse($contract->start_date)->format('d M, Y') : null,
-    //                 'endDate' => $contract->expiry_date ? \Carbon\Carbon::parse($contract->expiry_date)->format('d M, Y') : null,
-    //                 'amount' => $contract->contract_amount ? number_format($contract->contract_amount, 0) . ' AED' : null,
-    //                 'status' => $contract->status,
-    //                 'validUntil' => $contract->expiry_date ? \Carbon\Carbon::parse($contract->expiry_date)->format('d M,Y') : 'Waiting For Payment',
-    //             ];
-    //         });
-
-    //         // Format notes
-    //         $formattedNotes = $customer->notes->map(function ($note) {
-    //             return [
-    //                 'id' => 'CID-' . $note->id,
-    //                 'dateAdded' => $note->created_at ? \Carbon\Carbon::parse($note->created_at)->format('d M, Y') : null,
-    //                 'addedBy' => 'Ahmed Ali', // You'll need to replace this with actual user data
-    //             ];
-    //         });
-
-    //         // Format attachments (assuming you have specific attachment types)
-    //         $formattedAttachments = [
-    //             'clientId' => 'Client ID.PDF', // Replace with actual data
-    //             'companyLicense' => 'Company License.PDF', // Replace with actual data
-    //         ];
-
-    //         return [
-    //             'key' => 'KD-' . $customer->id,
-    //             'id' => $customer->id,
-    //             'client' => [
-    //                 'name' => $customer->name,
-    //                 'phone' => $customer->mobile,
-    //                 'avatar' => $customer->profile_image ? url($customer->profile_image) :  url('employee_profile_images/default.png'),
-    //             ],
-    //             'companyName' => $customer->company_name,
-    //             'officeNo' => 'CID-' . $customer->id,
-    //             'accountManager' => $customer->employee->name,
-    //             'status' => $customer->status,
-    //         ];
-    //     });
-
-    //     return response()->json($transformedCustomers);
-    // }
 
     public function index()
     {
