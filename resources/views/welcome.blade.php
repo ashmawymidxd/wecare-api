@@ -73,7 +73,7 @@
         /* Card with magical effects */
         .card {
             margin: 10px;
-            background: rgba(253, 253, 253, 0.726);
+            background: rgba(253, 253, 253);
             backdrop-filter: blur(10px);
             padding: 2.5rem;
             border-radius: 1.25rem;
@@ -90,7 +90,7 @@
         .card:hover {
             transform: translateY(-10px);
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
-            background: rgb(255, 255, 255);
+            background: rgb(255, 255, 255,0.726);
         }
 
         .card::before {
@@ -228,7 +228,7 @@
             across multiple branches and resources.
             <br />Simple, fast, and reliable for your workspace needs.
         </p>
-        <a href="https://we-care-khaki.vercel.app/" target="_blank" class="badge">API System Ready</a>
+        <a href="https://we-care-khaki.vercel.app/" target="_blank" class="badge">API System Ready v2</a>
         <footer>© 2025 Wecare | Desk & Room Reservation API</footer>
         {{-- developed by ahmed hassan my-profile-cv.vercel.app --}}
         <a href="https://my-profile-cv.vercel.app/" target="_blank" class="">Developed By ENG Ahmed Hassan</a>
