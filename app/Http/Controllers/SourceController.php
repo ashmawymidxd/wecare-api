@@ -133,12 +133,230 @@ class SourceController extends Controller
         }
     }
 
+    // public function show($id)
+    // {
+    //     $Per_Page = request()->get('per_page', 25);
+
+    //     // Fetch the source with account manager
+    //     $source = Source::with('accountManager','notes')->find($id);
+
+    //     if (!$source) {
+    //         return response()->json([
+    //             'message' => 'Source not found'
+    //         ], 404);
+    //     }
+
+    //     // Get current month and last month dates
+    //     $currentMonthStart = now()->startOfMonth();
+    //     $currentMonthEnd = now()->endOfMonth();
+    //     $lastMonthStart = now()->subMonth()->startOfMonth();
+    //     $lastMonthEnd = now()->subMonth()->endOfMonth();
+
+    //     // Fetch clients for this source with contract statistics
+    //     $customers = Customer::with(['contracts', 'employee'])
+    //         ->where('source_type', $source->source_type)
+    //         ->paginate($Per_Page);
+
+    //     // Calculate contract amount statistics for all customers of this source
+    //     $contractStatistics = Customer::where('source_type', $source->source_type)
+    //         ->with(['contracts' => function($query) use ($currentMonthStart, $currentMonthEnd, $lastMonthStart, $lastMonthEnd) {
+    //             $query->whereNotNull('contract_amount')
+    //                   ->where(function($q) use ($currentMonthStart, $currentMonthEnd, $lastMonthStart, $lastMonthEnd) {
+    //                       $q->whereBetween('created_at', [$currentMonthStart, $currentMonthEnd])
+    //                         ->orWhereBetween('created_at', [$lastMonthStart, $lastMonthEnd]);
+    //                   });
+    //         }])
+    //         ->get()
+    //         ->map(function ($customer) use ($currentMonthStart, $currentMonthEnd, $lastMonthStart, $lastMonthEnd) {
+    //             $thisMonthContracts = $customer->contracts
+    //                 ->whereBetween('created_at', [$currentMonthStart, $currentMonthEnd]);
+
+    //             $lastMonthContracts = $customer->contracts
+    //                 ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd]);
+
+    //             // Calculate income for this month
+    //             $thisMonthIncome = $thisMonthContracts->sum(function($contract) {
+    //                 return ($contract->contract_amount ?? 0) +
+    //                        ($contract->pro_amount_received ?? 0) +
+    //                        ($contract->cash_amount ?? 0) +
+    //                        ($contract->actual_amount ?? 0);
+    //             });
+
+    //             // Calculate outcome for this month
+    //             $thisMonthOutcome = $thisMonthContracts->sum(function($contract) {
+    //                 return ($contract->pro_expense ?? 0) +
+    //                        ($contract->electricity_fees ?? 0) +
+    //                        ($contract->contract_ratification_fees ?? 0) +
+    //                        ($contract->commission ?? 0) +
+    //                        ($contract->discount ?? 0);
+    //             });
+
+    //             // Calculate income for last month
+    //             $lastMonthIncome = $lastMonthContracts->sum(function($contract) {
+    //                 return ($contract->contract_amount ?? 0) +
+    //                        ($contract->pro_amount_received ?? 0) +
+    //                        ($contract->cash_amount ?? 0) +
+    //                        ($contract->actual_amount ?? 0);
+    //             });
+
+    //             // Calculate outcome for last month
+    //             $lastMonthOutcome = $lastMonthContracts->sum(function($contract) {
+    //                 return ($contract->pro_expense ?? 0) +
+    //                        ($contract->electricity_fees ?? 0) +
+    //                        ($contract->contract_ratification_fees ?? 0) +
+    //                        ($contract->commission ?? 0) +
+    //                        ($contract->discount ?? 0);
+    //             });
+
+    //             // Calculate totals and averages
+    //             $totalIncome = $thisMonthIncome + $lastMonthIncome;
+    //             $totalOutcome = $thisMonthOutcome + $lastMonthOutcome;
+    //             $netProfit = $totalIncome - $totalOutcome;
+
+    //             return [
+    //                 'customer_id' => $customer->id,
+    //                 'customer_name' => $customer->name,
+    //                 'this_month_amount' => $thisMonthContracts->sum('contract_amount'),
+    //                 'last_month_amount' => $lastMonthContracts->sum('contract_amount'),
+    //                 'total_amount' => $thisMonthContracts->sum('contract_amount') + $lastMonthContracts->sum('contract_amount'),
+    //                 'average_amount' => ($thisMonthContracts->sum('contract_amount') + $lastMonthContracts->sum('contract_amount')) / 2,
+    //                 'income' => [
+    //                     'this_month' => $thisMonthIncome,
+    //                     'last_month' => $lastMonthIncome,
+    //                     'total' => $totalIncome,
+    //                     'average' => $totalIncome / 2
+    //                 ],
+    //                 'outcome' => [
+    //                     'this_month' => $thisMonthOutcome,
+    //                     'last_month' => $lastMonthOutcome,
+    //                     'total' => $totalOutcome,
+    //                     'average' => $totalOutcome / 2
+    //                 ],
+    //                 'net_profit' => [
+    //                     'this_month' => $thisMonthIncome - $thisMonthOutcome,
+    //                     'last_month' => $lastMonthIncome - $lastMonthOutcome,
+    //                     'total' => $netProfit,
+    //                     'average' => $netProfit / 2
+    //                 ]
+    //             ];
+    //         });
+
+    //     // Calculate overall income and outcome statistics
+    //     $totalThisMonthIncome = $contractStatistics->sum('income.this_month');
+    //     $totalLastMonthIncome = $contractStatistics->sum('income.last_month');
+    //     $totalIncome = $totalThisMonthIncome + $totalLastMonthIncome;
+    //     $averageIncome = $totalIncome > 0 ? $totalIncome / 2 : 0;
+
+    //     $totalThisMonthOutcome = $contractStatistics->sum('outcome.this_month');
+    //     $totalLastMonthOutcome = $contractStatistics->sum('outcome.last_month');
+    //     $totalOutcome = $totalThisMonthOutcome + $totalLastMonthOutcome;
+    //     $averageOutcome = $totalOutcome > 0 ? $totalOutcome / 2 : 0;
+
+    //     // Transform clients
+    //     $transformedCustomers = collect($customers->items())->map(function ($customer) use ($contractStatistics) {
+    //         return [
+    //             'key' => 'KD-' . $customer->id,
+    //             'id' => $customer->id,
+    //             'client' => [
+    //                 'name' => $customer->name,
+    //                 'phone' => $customer->mobile,
+    //                 'avatar' => $customer->profile_image ? url($customer->profile_image) : url('employee_profile_images/default.png'),
+    //             ],
+    //             'companyName' => $customer->company_name,
+    //             'officeNo' => 'CID-' . $customer->id,
+    //             'accountManager' => $customer->employee->name ?? 'N/A',
+    //             'status' => $customer->status,
+    //         ];
+    //     });
+
+    //     // Final response with restructured organization
+    //     return response()->json([
+    //         'source' => [
+    //             'id' => $source->id,
+    //             'name' => $source->name,
+    //             'source_type' => $source->source_type,
+    //             'phone_number' => $source->phone_number,
+    //             'nationality' => $source->nationality,
+    //             'preferred_language' => $source->preferred_language,
+    //             'last_connect_date' => $source->last_connect_date ? $source->last_connect_date->format('Y-m-d') : null,
+    //             'clients_number' => $source->clients_number,
+    //             'account_manager' => $source->accountManager ? [
+    //                 'id' => $source->accountManager->id,
+    //                 'name' => $source->accountManager->name,
+    //                 'email' => $source->accountManager->email ?? null
+    //             ] : null,
+    //             'created_at' => $source->created_at->format('Y-m-d H:i:s'),
+    //             'updated_at' => $source->updated_at->format('Y-m-d H:i:s')
+    //         ],
+    //         'clients' => [
+    //             'data' => $transformedCustomers,
+    //             'pagination' => [
+    //                 'current_page' => $customers->currentPage(),
+    //                 'per_page' => $customers->perPage(),
+    //                 'total' => $customers->total(),
+    //                 'last_page' => $customers->lastPage(),
+    //                 'from' => $customers->firstItem(),
+    //                 'to' => $customers->lastItem(),
+    //             ]
+    //         ],
+    //         'statistics' => [
+    //             'customers' => [
+
+    //             ],
+    //             'income' => [
+    //                 'this_month' => [
+    //                     'amount' => number_format($totalThisMonthIncome, 2) . ' AED',
+    //                     'raw_amount' => $totalThisMonthIncome
+    //                 ],
+    //                 'last_month' => [
+    //                     'amount' => number_format($totalLastMonthIncome, 2) . ' AED',
+    //                     'raw_amount' => $totalLastMonthIncome
+    //                 ],
+    //                 'total' => [
+    //                     'amount' => number_format($totalIncome, 2) . ' AED',
+    //                     'raw_amount' => $totalIncome
+    //                 ],
+    //                 'average' => [
+    //                     'amount' => number_format($averageIncome, 2) . ' AED',
+    //                     'raw_amount' => $averageIncome
+    //                 ]
+    //             ],
+    //             'outcome' => [
+    //                 'this_month' => [
+    //                     'amount' => number_format($totalThisMonthOutcome, 2) . ' AED',
+    //                     'raw_amount' => $totalThisMonthOutcome
+    //                 ],
+    //                 'last_month' => [
+    //                     'amount' => number_format($totalLastMonthOutcome, 2) . ' AED',
+    //                     'raw_amount' => $totalLastMonthOutcome
+    //                 ],
+    //                 'total' => [
+    //                     'amount' => number_format($totalOutcome, 2) . ' AED',
+    //                     'raw_amount' => $totalOutcome
+    //                 ],
+    //                 'average' => [
+    //                     'amount' => number_format($averageOutcome, 2) . ' AED',
+    //                     'raw_amount' => $averageOutcome
+    //                 ]
+    //             ]
+    //         ],
+    //         'notes' => $source->notes->map(function ($note) {
+    //             return [
+    //                 'id' => $note->id,
+    //                 'note' => $note->note,
+    //                 'date_added' => $note->date_added->format('Y-m-d'),
+    //                 'added_by_name' => $note->employees->name
+    //             ];
+    //         })
+    //     ]);
+    // }
+
     public function show($id)
     {
         $Per_Page = request()->get('per_page', 25);
 
         // Fetch the source with account manager
-        $source = Source::with('accountManager','notes')->find($id);
+        $source = Source::with('accountManager', 'notes')->find($id);
 
         if (!$source) {
             return response()->json([
@@ -152,63 +370,70 @@ class SourceController extends Controller
         $lastMonthStart = now()->subMonth()->startOfMonth();
         $lastMonthEnd = now()->subMonth()->endOfMonth();
 
-        // Fetch clients for this source with contract statistics
+        // Fetch clients for this source with contracts and employee
         $customers = Customer::with(['contracts', 'employee'])
             ->where('source_type', $source->source_type)
             ->paginate($Per_Page);
 
-        // Calculate contract amount statistics for all customers of this source
+        // 🆕 Customer counts by month
+        $thisMonthCustomerCount = Customer::where('source_type', $source->source_type)
+            ->whereBetween('created_at', [$currentMonthStart, $currentMonthEnd])
+            ->count();
+
+        $lastMonthCustomerCount = Customer::where('source_type', $source->source_type)
+            ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
+            ->count();
+
+        $totalCustomerCount = Customer::where('source_type', $source->source_type)->count();
+        $averageCustomerCount = ($thisMonthCustomerCount + $lastMonthCustomerCount) / 2;
+
+        // Fetch and calculate contract-related financial statistics
         $contractStatistics = Customer::where('source_type', $source->source_type)
-            ->with(['contracts' => function($query) use ($currentMonthStart, $currentMonthEnd, $lastMonthStart, $lastMonthEnd) {
+            ->with(['contracts' => function ($query) use ($currentMonthStart, $currentMonthEnd, $lastMonthStart, $lastMonthEnd) {
                 $query->whereNotNull('contract_amount')
-                      ->where(function($q) use ($currentMonthStart, $currentMonthEnd, $lastMonthStart, $lastMonthEnd) {
-                          $q->whereBetween('created_at', [$currentMonthStart, $currentMonthEnd])
+                    ->where(function ($q) use ($currentMonthStart, $currentMonthEnd, $lastMonthStart, $lastMonthEnd) {
+                        $q->whereBetween('created_at', [$currentMonthStart, $currentMonthEnd])
                             ->orWhereBetween('created_at', [$lastMonthStart, $lastMonthEnd]);
-                      });
+                    });
             }])
             ->get()
             ->map(function ($customer) use ($currentMonthStart, $currentMonthEnd, $lastMonthStart, $lastMonthEnd) {
                 $thisMonthContracts = $customer->contracts
                     ->whereBetween('created_at', [$currentMonthStart, $currentMonthEnd]);
-
                 $lastMonthContracts = $customer->contracts
                     ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd]);
 
-                // Calculate income for this month
-                $thisMonthIncome = $thisMonthContracts->sum(function($contract) {
+                // Income and outcome calculations
+                $thisMonthIncome = $thisMonthContracts->sum(function ($contract) {
                     return ($contract->contract_amount ?? 0) +
-                           ($contract->pro_amount_received ?? 0) +
-                           ($contract->cash_amount ?? 0) +
-                           ($contract->actual_amount ?? 0);
+                        ($contract->pro_amount_received ?? 0) +
+                        ($contract->cash_amount ?? 0) +
+                        ($contract->actual_amount ?? 0);
                 });
 
-                // Calculate outcome for this month
-                $thisMonthOutcome = $thisMonthContracts->sum(function($contract) {
+                $thisMonthOutcome = $thisMonthContracts->sum(function ($contract) {
                     return ($contract->pro_expense ?? 0) +
-                           ($contract->electricity_fees ?? 0) +
-                           ($contract->contract_ratification_fees ?? 0) +
-                           ($contract->commission ?? 0) +
-                           ($contract->discount ?? 0);
+                        ($contract->electricity_fees ?? 0) +
+                        ($contract->contract_ratification_fees ?? 0) +
+                        ($contract->commission ?? 0) +
+                        ($contract->discount ?? 0);
                 });
 
-                // Calculate income for last month
-                $lastMonthIncome = $lastMonthContracts->sum(function($contract) {
+                $lastMonthIncome = $lastMonthContracts->sum(function ($contract) {
                     return ($contract->contract_amount ?? 0) +
-                           ($contract->pro_amount_received ?? 0) +
-                           ($contract->cash_amount ?? 0) +
-                           ($contract->actual_amount ?? 0);
+                        ($contract->pro_amount_received ?? 0) +
+                        ($contract->cash_amount ?? 0) +
+                        ($contract->actual_amount ?? 0);
                 });
 
-                // Calculate outcome for last month
-                $lastMonthOutcome = $lastMonthContracts->sum(function($contract) {
+                $lastMonthOutcome = $lastMonthContracts->sum(function ($contract) {
                     return ($contract->pro_expense ?? 0) +
-                           ($contract->electricity_fees ?? 0) +
-                           ($contract->contract_ratification_fees ?? 0) +
-                           ($contract->commission ?? 0) +
-                           ($contract->discount ?? 0);
+                        ($contract->electricity_fees ?? 0) +
+                        ($contract->contract_ratification_fees ?? 0) +
+                        ($contract->commission ?? 0) +
+                        ($contract->discount ?? 0);
                 });
 
-                // Calculate totals and averages
                 $totalIncome = $thisMonthIncome + $lastMonthIncome;
                 $totalOutcome = $thisMonthOutcome + $lastMonthOutcome;
                 $netProfit = $totalIncome - $totalOutcome;
@@ -241,7 +466,7 @@ class SourceController extends Controller
                 ];
             });
 
-        // Calculate overall income and outcome statistics
+        // Overall income/outcome stats
         $totalThisMonthIncome = $contractStatistics->sum('income.this_month');
         $totalLastMonthIncome = $contractStatistics->sum('income.last_month');
         $totalIncome = $totalThisMonthIncome + $totalLastMonthIncome;
@@ -253,7 +478,7 @@ class SourceController extends Controller
         $averageOutcome = $totalOutcome > 0 ? $totalOutcome / 2 : 0;
 
         // Transform clients
-        $transformedCustomers = collect($customers->items())->map(function ($customer) use ($contractStatistics) {
+        $transformedCustomers = collect($customers->items())->map(function ($customer) {
             return [
                 'key' => 'KD-' . $customer->id,
                 'id' => $customer->id,
@@ -269,7 +494,7 @@ class SourceController extends Controller
             ];
         });
 
-        // Final response with restructured organization
+        // Final response
         return response()->json([
             'source' => [
                 'id' => $source->id,
@@ -301,10 +526,18 @@ class SourceController extends Controller
             ],
             'statistics' => [
                 'customers' => [
-                    'total_customers' => $customers->total(),
-                    'customers_with_contracts' => $contractStatistics->where('total_amount', '>', 0)->count(),
-                    'active_customers' => $customers->items() ? collect($customers->items())->where('status', 'active')->count() : 0,
-                    'inactive_customers' => $customers->items() ? collect($customers->items())->where('status', '!=', 'active')->count() : 0
+                    'this_month' => [
+                        'count' => $thisMonthCustomerCount,
+                    ],
+                    'last_month' => [
+                        'count' => $lastMonthCustomerCount,
+                    ],
+                    'total' => [
+                        'count' => $totalCustomerCount,
+                    ],
+                    'average' => [
+                        'count' => round($averageCustomerCount, 2),
+                    ],
                 ],
                 'income' => [
                     'this_month' => [
@@ -353,6 +586,7 @@ class SourceController extends Controller
             })
         ]);
     }
+
 
     public function update(Request $request, $id)
     {
