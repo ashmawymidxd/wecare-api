@@ -295,8 +295,20 @@ class CustomerController extends Controller
 
     public function addNote(Request $request, $customerId)
     {
-        $customer = Customer::findOrFail($customerId);
+        // ✅ Step 1: Validate the customer ID first
+        $idValidator = Validator::make(['customer_id' => $customerId], [
+            'customer_id' => 'required|integer|exists:customers,id',
+        ]);
 
+        if ($idValidator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid or missing customer ID.',
+                'errors' => $idValidator->errors(),
+            ], 422);
+        }
+
+        // ✅ Step 2: Validate note input
         $validator = Validator::make($request->all(), [
             'note' => 'required|string',
             'note_date' => 'nullable|date',
@@ -304,16 +316,36 @@ class CustomerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid note input.',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
+        // ✅ Step 3: Retrieve the validated customer
+        $customer = Customer::find($customerId);
+
+        // ✅ Step 4: Prepare the note data
         $noteData = [
             'note' => $request->note,
-            'note_date' => $request->note_date ?? now(),
+            'note_date' => $request->note_date ?? now()->toDateString(),
         ];
 
+        // ✅ Optional: Include note_time if provided
+        if ($request->filled('note_time')) {
+            $noteData['note_time'] = $request->note_time;
+        }
+
+        // ✅ Step 5: Create the note
         $note = $customer->notes()->create($noteData);
 
-        return response()->json($note, 201);
+        // ✅ Step 6: Return a clean response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Note added successfully.',
+            'note' => $note,
+        ], 201);
     }
+
 }

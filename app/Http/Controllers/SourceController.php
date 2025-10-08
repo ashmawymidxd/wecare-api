@@ -653,9 +653,10 @@ class SourceController extends Controller
         }
 
         // Check if this source has associated clients before deleting
-        if ($source->clients_number > 0) {
+        $clients = Customer::where('source_type',$source->source_type);
+        if ($clients->count() > 0) {
             return response()->json([
-                'message' => 'Cannot delete source with active clients'
+                'message' => 'this source associated to clients'
             ], 400);
         }
 
@@ -664,7 +665,7 @@ class SourceController extends Controller
 
             return response()->json([
                 'message' => 'Source deleted successfully'
-            ], 204);
+            ]);
 
         } catch (\Exception $e) {
             return response()->json([

@@ -53,6 +53,13 @@ class RolesTableSeeder extends Seeder
                     'manage-employees',
                     'view-reports'
                 ]
+            ],
+            [
+                'name' => 'secretary',
+                'permissions' => [
+                    'manage-employees',
+                    'view-reports'
+                ]
             ]
         ];
 

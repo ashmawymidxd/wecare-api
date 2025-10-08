@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\ActivityLog;
+use App\Models\Source;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -227,9 +228,23 @@ class EmployeeController extends Controller
             $attachment->delete();
         }
 
+        // check if this eployee assoited to customers
+        if ($employee->customers->count() > 0 ){
+            return response()->json([
+                'message' => 'this employee associated to clients'
+            ], 400);
+        }
+
+        $sources = Source::where('account_manager_id',$employee->id);
+        if($sources->count() > 0 ){
+             return response()->json([
+                'message' => 'this employee associated to sources'
+            ], 400);
+        }
+
         $employee->delete();
 
-        return response()->json(null, 204);
+        return response()->json("employee deleted successfully");
     }
 
 
