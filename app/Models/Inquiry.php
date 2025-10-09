@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Inquiry extends Model
 {
@@ -43,5 +44,10 @@ class Inquiry extends Model
     public function source()
     {
         return $this->belongsTo(Source::class);
+    }
+
+    public function timelines(): HasMany
+    {
+        return $this->hasMany(InquiriesTimeLine::class, 'inquirie_id');
     }
 }

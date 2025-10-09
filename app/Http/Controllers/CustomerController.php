@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-use App\Models\CustomerAttachment;
-use App\Models\CustomerNote;
+use App\Models\Employee;
+use App\Models\Inquiry;
+use App\Models\InquiriesTimeLine;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
@@ -77,6 +80,74 @@ class CustomerController extends Controller
         ]);
     }
 
+    // public function store(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'name' => 'required|string|max:255',
+    //         'mobile' => 'required|string|max:20',
+    //         'email' => 'required|email|max:255',
+    //         'nationality' => 'nullable|string|max:100',
+    //         'preferred_language' => 'nullable|string|max:10',
+    //         'address' => 'nullable|string',
+    //         'company_name' => 'nullable|string|max:255',
+    //         'business_category' => 'nullable|string|max:255',
+    //         'country' => 'nullable|string|max:100',
+    //         'joining_date' => 'nullable|date',
+    //         'source_type' => 'required|in:Tasheel,Typing Center,PRO,Social Media,Referral,Inactive',
+    //         'profile_image' => 'required|image|max:2048', // 2MB max
+    //         'employee_id' => 'nullable|exists:employees,id'
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json($validator->errors(), 422);
+    //     }
+
+    //     $data = $validator->validated();
+
+    //     // Handle profile image upload
+    //     if ($request->hasFile('profile_image')) {
+    //         $file = $request->file('profile_image');
+    //         $filename = time() . '_' . $file->getClientOriginalName();
+    //         $file->move(public_path('customer_profile_images'), $filename);
+    //         $data['profile_image'] = url('customer_profile_images/' . $filename);
+    //     }
+
+
+    //     $customer = Customer::create($data);
+
+    //     // handel note and attachment uploads
+    //     if ($request->has('note')) {
+    //          $noteData = [
+    //             'note' => $request->note,
+    //             'note_date' => $request->note_date ?? now(),
+    //             'note_time' => $request->note_time ?? now()->format('H:i'),
+    //         ];
+    //         $customer->notes()->create($noteData);
+    //     }
+
+    //     // Handle document uploads
+    //     $this->handleDocumentUploads($request, $customer);
+
+    //     // Time Line
+    //     $customer_email = $request->email;
+    //     $customer_inquery = Inquiry::where('email',$customer_email);
+    //     $account_manger = Employee::findOrfial($request->employee_id);
+
+    //     // InquiriesTimeLine
+
+    //     if($customer_email == $customer_inquery ->email){
+    //         InquiriesTimeLine::craete([
+    //             "stepOne"=>"Client Added",
+    //             "stepTow"=>"Account Manger ".$account_manger->name." Contact With Client",
+    //             "stepThree"=>"Client Agreed The Terms contract Should be signed this week",
+    //             "inquirie_id" => $customer_inquery->id,
+    //         ]);
+    //     }
+
+    //     return response()->json($customer->load(['attachments']), 201);
+
+    // }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -104,30 +175,83 @@ class CustomerController extends Controller
         // Handle profile image upload
         if ($request->hasFile('profile_image')) {
             $file = $request->file('profile_image');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
             $file->move(public_path('customer_profile_images'), $filename);
-            $data['profile_image'] = url('customer_profile_images/' . $filename);
+            $data['profile_image'] = 'customer_profile_images/' . $filename; // Store relative path
         }
 
+        DB::beginTransaction();
+        
+        try {
+            // Create customer
+            $customer = Customer::create($data);
 
-        $customer = Customer::create($data);
+            // Handle note creation
+            if ($request->filled('note')) {
+                $customer->notes()->create([
+                    'note' => $request->note,
+                    'note_date' => $request->note_date ?? now()->format('Y-m-d'),
+                    'note_time' => $request->note_time ?? now()->format('H:i:s'),
+                ]);
+            }
 
-        // handel note and attachment uploads
-        if ($request->has('note')) {
-             $noteData = [
-                'note' => $request->note,
-                'note_date' => $request->note_date ?? now(),
-                'note_time' => $request->note_time ?? now()->format('H:i'),
-            ];
-            $customer->notes()->create($noteData);
+            // Handle document uploads
+            $this->handleDocumentUploads($request, $customer);
+
+            // Handle timeline creation
+            $this->handleTimelineCreation($request->email, $request->employee_id);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Customer created successfully',
+                'data' => $customer->load(['attachments', 'notes'])
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Clean up uploaded file if transaction fails
+            if (isset($filename) && file_exists(public_path('customer_profile_images/' . $filename))) {
+                unlink(public_path('customer_profile_images/' . $filename));
+            }
+
+            Log::error('Customer creation failed: ' . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'Failed to create customer',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
         }
-
-        // Handle document uploads
-        $this->handleDocumentUploads($request, $customer);
-
-        return response()->json($customer->load(['attachments']), 201);
-
     }
+
+    /**
+     * Handle timeline creation for existing inquiries
+     */
+    private function handleTimelineCreation($email, $employeeId)
+    {
+        // Find existing inquiry by email
+        $inquiry = Inquiry::where('email', $email)->first();
+        
+        if (!$inquiry) {
+            return;
+        }
+
+        // Get account manager name if exists
+        $accountManagerName = 'Unknown';
+        if ($employeeId) {
+            $accountManager = Employee::find($employeeId);
+            $accountManagerName = $accountManager ? $accountManager->name : 'Unknown';
+        }
+
+        // Create timeline entry using the relationship
+        $inquiry->timelines()->create([
+            "stepOne" => "Client Added",
+            "stepTwo" => "Account Manager {$accountManagerName} Contact With Client",
+            "stepThree" => "Client Agreed The Terms contract Should be signed this week",
+        ]);
+    }   
+
 
     public function show($id)
     {

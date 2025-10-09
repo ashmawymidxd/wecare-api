@@ -110,7 +110,7 @@ class InquiryController extends Controller
 
     public function show($id)
     {
-        $inquiry = Inquiry::with(['customer', 'source'])->findOrFail($id);
+        $inquiry = Inquiry::with(['customer', 'source','timelines'])->findOrFail($id);
         return response()->json($inquiry);
     }
 
