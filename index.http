@@ -38,3 +38,12 @@ Content-Type: application/json
     "name":"ahmed",
     "address":"ahmed"
 }
+
+###
+PUT {{URL}}/inquiries/1
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+    "status":"Inactive"
+}

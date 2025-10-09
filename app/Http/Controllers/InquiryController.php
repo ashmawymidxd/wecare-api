@@ -135,6 +135,7 @@ class InquiryController extends Controller
             'expected_discount' => 'nullable|numeric|between:0,100',
             'customer_id' => 'nullable|exists:customers,id',
             'source_id' => 'nullable|exists:sources,id',
+            'status'=>'required|in:Active,Inactive'
         ]);
 
         if ($validator->fails()) {
