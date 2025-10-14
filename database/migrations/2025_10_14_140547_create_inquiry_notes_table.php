@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('rooms', function (Blueprint $table) {
+        Schema::create('inquiry_notes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('branch_id')->constrained()->onDelete('cascade');
-            $table->string('room_number');
+            $table->foreignId('inquirie_id')->constrained()->onDelete('cascade');
+            $table->text('note');
+            $table->dateTime('note_date');
+            $table->time('note_time')->nullable(); // Added note_time field
             $table->timestamps();
         });
     }
@@ -24,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('rooms');
+        Schema::dropIfExists('inquiry_notes');
     }
 };

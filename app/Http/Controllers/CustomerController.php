@@ -80,74 +80,6 @@ class CustomerController extends Controller
         ]);
     }
 
-    // public function store(Request $request)
-    // {
-    //     $validator = Validator::make($request->all(), [
-    //         'name' => 'required|string|max:255',
-    //         'mobile' => 'required|string|max:20',
-    //         'email' => 'required|email|max:255',
-    //         'nationality' => 'nullable|string|max:100',
-    //         'preferred_language' => 'nullable|string|max:10',
-    //         'address' => 'nullable|string',
-    //         'company_name' => 'nullable|string|max:255',
-    //         'business_category' => 'nullable|string|max:255',
-    //         'country' => 'nullable|string|max:100',
-    //         'joining_date' => 'nullable|date',
-    //         'source_type' => 'required|in:Tasheel,Typing Center,PRO,Social Media,Referral,Inactive',
-    //         'profile_image' => 'required|image|max:2048', // 2MB max
-    //         'employee_id' => 'nullable|exists:employees,id'
-    //     ]);
-
-    //     if ($validator->fails()) {
-    //         return response()->json($validator->errors(), 422);
-    //     }
-
-    //     $data = $validator->validated();
-
-    //     // Handle profile image upload
-    //     if ($request->hasFile('profile_image')) {
-    //         $file = $request->file('profile_image');
-    //         $filename = time() . '_' . $file->getClientOriginalName();
-    //         $file->move(public_path('customer_profile_images'), $filename);
-    //         $data['profile_image'] = url('customer_profile_images/' . $filename);
-    //     }
-
-
-    //     $customer = Customer::create($data);
-
-    //     // handel note and attachment uploads
-    //     if ($request->has('note')) {
-    //          $noteData = [
-    //             'note' => $request->note,
-    //             'note_date' => $request->note_date ?? now(),
-    //             'note_time' => $request->note_time ?? now()->format('H:i'),
-    //         ];
-    //         $customer->notes()->create($noteData);
-    //     }
-
-    //     // Handle document uploads
-    //     $this->handleDocumentUploads($request, $customer);
-
-    //     // Time Line
-    //     $customer_email = $request->email;
-    //     $customer_inquery = Inquiry::where('email',$customer_email);
-    //     $account_manger = Employee::findOrfial($request->employee_id);
-
-    //     // InquiriesTimeLine
-
-    //     if($customer_email == $customer_inquery ->email){
-    //         InquiriesTimeLine::craete([
-    //             "stepOne"=>"Client Added",
-    //             "stepTow"=>"Account Manger ".$account_manger->name." Contact With Client",
-    //             "stepThree"=>"Client Agreed The Terms contract Should be signed this week",
-    //             "inquirie_id" => $customer_inquery->id,
-    //         ]);
-    //     }
-
-    //     return response()->json($customer->load(['attachments']), 201);
-
-    // }
-
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -177,11 +109,11 @@ class CustomerController extends Controller
             $file = $request->file('profile_image');
             $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
             $file->move(public_path('customer_profile_images'), $filename);
-            $data['profile_image'] = 'customer_profile_images/' . $filename; // Store relative path
+            $data['profile_image'] = url('customer_profile_images/' . $filename);
         }
 
         DB::beginTransaction();
-        
+
         try {
             // Create customer
             $customer = Customer::create($data);
@@ -210,16 +142,86 @@ class CustomerController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             // Clean up uploaded file if transaction fails
             if (isset($filename) && file_exists(public_path('customer_profile_images/' . $filename))) {
                 unlink(public_path('customer_profile_images/' . $filename));
             }
 
             Log::error('Customer creation failed: ' . $e->getMessage());
-            
+
             return response()->json([
                 'message' => 'Failed to create customer',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    public function InquiryAsCustomer($inquiryId, $employeeId)
+    {
+        DB::beginTransaction();
+
+        try {
+            // Find the inquiry with validation
+            $inquiry = Inquiry::find($inquiryId);
+
+            if (!$inquiry) {
+                return response()->json([
+                    'message' => 'Inquiry not found'
+                ], 404);
+            }
+
+            // Check if customer already exists with this email
+            $existingCustomer = Customer::where('email', $inquiry->email)->first();
+            if ($existingCustomer) {
+                return response()->json([
+                    'message' => 'Customer with this email already exists'
+                ], 409);
+            }
+
+            // Create customer from inquiry data
+            $customer = Customer::create([
+                'name' => $inquiry->name,
+                'mobile' => $inquiry->mobile,
+                'email' => $inquiry->email,
+                'nationality' => $inquiry->nationality,
+                'preferred_language' => $inquiry->preferred_language,
+                'address' => $inquiry->address,
+                'company_name' => $inquiry->company_name,
+                'business_category' => $inquiry->business_category,
+                'country' => $inquiry->country,
+                'joining_date' => $inquiry->joining_date,
+                'source_type' => $inquiry->source_name,
+                'profile_image' => $inquiry->profile_image,
+                'employee_id' => $employeeId,
+                'inquiry_id' => $inquiryId // Keep reference to original inquiry
+            ]);
+
+            // Handle timeline creation
+            $this->handleTimelineCreation($inquiry->email, $employeeId, $customer->id);
+
+            // Optionally mark inquiry as converted or delete it
+            $inquiry->update(['status' => 'Active']);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Inquiry converted to customer successfully',
+                'customer_id' => $customer->id,
+                'customer' => $customer
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Error converting inquiry to customer: ' . $e->getMessage(), [
+                'inquiry_id' => $inquiryId,
+                'employee_id' => $employeeId,
+                'exception' => $e
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to convert inquiry to customer',
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
@@ -232,7 +234,7 @@ class CustomerController extends Controller
     {
         // Find existing inquiry by email
         $inquiry = Inquiry::where('email', $email)->first();
-        
+
         if (!$inquiry) {
             return;
         }
@@ -250,7 +252,7 @@ class CustomerController extends Controller
             "stepTwo" => "Account Manager {$accountManagerName} Contact With Client",
             "stepThree" => "Client Agreed The Terms contract Should be signed this week",
         ]);
-    }   
+    }
 
 
     public function show($id)
@@ -373,6 +375,62 @@ class CustomerController extends Controller
         return response()->json($attachment, 201);
     }
 
+    // Delete Attachment
+    public function deleteAttachment($attachmentId)
+    {
+        try {
+            // Validate attachment ID
+            if (!is_numeric($attachmentId) || $attachmentId <= 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid attachment ID provided.',
+                ], 400);
+            }
+
+            // Find the attachment
+            $attachment = \App\Models\CustomerAttachment::find($attachmentId);
+
+            if (!$attachment) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'The document was not found.',
+                ], 404);
+            }
+
+            // Ensure file_path exists and is valid
+            if (empty($attachment->file_path)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'File path is missing or invalid.',
+                ], 422);
+            }
+
+            // Extract the relative file path safely
+            $filePath = str_replace(url('/') . '/', '', $attachment->file_path);
+            $absolutePath = public_path($filePath);
+
+            // Delete file if exists and is within the public directory (prevent directory traversal)
+            if (file_exists($absolutePath) && str_starts_with(realpath($absolutePath), public_path())) {
+                @unlink($absolutePath);
+            }
+
+            // Delete database record
+            $attachment->delete();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Document deleted successfully.',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'An unexpected error occurred while deleting the document.',
+            ], 500);
+        }
+    }
+
+
 
     protected function handleDocumentUploads(Request $request, Customer $customer)
     {
@@ -419,7 +477,6 @@ class CustomerController extends Controller
 
     public function addNote(Request $request, $customerId)
     {
-        // ✅ Step 1: Validate the customer ID first
         $idValidator = Validator::make(['customer_id' => $customerId], [
             'customer_id' => 'required|integer|exists:customers,id',
         ]);
@@ -432,7 +489,6 @@ class CustomerController extends Controller
             ], 422);
         }
 
-        // ✅ Step 2: Validate note input
         $validator = Validator::make($request->all(), [
             'note' => 'required|string',
             'note_date' => 'nullable|date',
@@ -447,24 +503,19 @@ class CustomerController extends Controller
             ], 422);
         }
 
-        // ✅ Step 3: Retrieve the validated customer
         $customer = Customer::find($customerId);
 
-        // ✅ Step 4: Prepare the note data
         $noteData = [
             'note' => $request->note,
             'note_date' => $request->note_date ?? now()->toDateString(),
         ];
 
-        // ✅ Optional: Include note_time if provided
         if ($request->filled('note_time')) {
             $noteData['note_time'] = $request->note_time;
         }
 
-        // ✅ Step 5: Create the note
         $note = $customer->notes()->create($noteData);
 
-        // ✅ Step 6: Return a clean response
         return response()->json([
             'status' => 'success',
             'message' => 'Note added successfully.',

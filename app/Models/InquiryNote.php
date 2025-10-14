@@ -6,16 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class InquiriesTimeLine extends Model
+class InquiryNote extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'stepOne',
-        'stepTwo', // Note: Fixed typo from 'stepTow' to 'stepTwo'
-        'stepThree',
-        'inquirie_id'
-    ];
+    protected $fillable = ['inquirie_id', 'note', 'note_date' , 'note_time'];
+
+    protected $dates = ['note_date'];
 
     /**
      * Get the inquiry that owns the timeline

@@ -26,7 +26,7 @@ return new class extends Migration
             $table->decimal('expected_discount', 5, 2)->nullable();
             $table->foreignId('customer_id')->nullable()->constrained()->onDelete('cascade');
             $table->foreignId('source_id')->nullable()->constrained()->onDelete('set null');
-             $table->enum('status', ['Active', 'Inactive'])->default('Active');
+            $table->enum('status', ['Active', 'Inactive'])->default('Active');
             $table->timestamps();
         });
     }

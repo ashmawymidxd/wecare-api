@@ -6,22 +6,18 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class InquiriesTimeLine extends Model
+class InquiryReminder extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'stepOne',
-        'stepTwo', // Note: Fixed typo from 'stepTow' to 'stepTwo'
-        'stepThree',
-        'inquirie_id'
-    ];
+    protected $fillable = ['inquirie_id', 'note', 'reminder_type' , 'reminder_date'];
 
-    /**
-     * Get the inquiry that owns the timeline
-     */
+    protected $dates = ['reminder_date'];
+
     public function inquiry(): BelongsTo
     {
         return $this->belongsTo(Inquiry::class, 'inquirie_id');
     }
+
+
 }

@@ -18,12 +18,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 class ContractController extends Controller
 {
-    // public function index()
-    // {
-    //     $contracts = Contract::with(['customer', 'branch', 'attachments','desks'])->get();
-    //     return response()->json($contracts);
-    // }
-
     public function index()
     {
         $Per_Page = request()->get('per_page',25);

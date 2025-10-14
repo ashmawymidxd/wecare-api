@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('rooms', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('branch_id')->constrained()->onDelete('cascade');
-            $table->string('room_number');
+        Schema::create('inquiry_reminders', function (Blueprint $table) {
+         $table->id();
+            $table->foreignId('inquirie_id')->constrained()->onDelete('cascade');
+            $table->text('note');
+            $table->text('reminder_type');
+            $table->dateTime('reminder_date');
             $table->timestamps();
         });
     }
@@ -24,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('rooms');
+        Schema::dropIfExists('inquiry_reminders');
     }
 };

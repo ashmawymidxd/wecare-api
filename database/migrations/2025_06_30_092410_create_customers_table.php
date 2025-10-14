@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('mobile');
             $table->string('email')->nullable();
             $table->string('nationality')->nullable();
-            $table->string('preferred_language')->default('en');
+            $table->string('preferred_language')->nullable();
             $table->text('address')->nullable();
             $table->string('company_name')->nullable();
             $table->string('business_category')->nullable();

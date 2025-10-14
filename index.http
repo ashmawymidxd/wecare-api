@@ -40,6 +40,25 @@ Content-Type: application/json
 }
 
 ###
+POST {{URL}}/inquiries
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "name": "ahmed",
+  "mobile": "01554300351",
+  "email": "uyu365656@gmail.com",
+  "nationality": "Egyption",
+  "preferred_language": "Arabic",
+  "address": "Elwasta",
+  "company_name": "Motala",
+  "business_category": "All",
+  "country": "Egypt",
+  "joining_date": "12-12-2025",
+  "source_name": "PRO"
+}
+
+###
 PUT {{URL}}/inquiries/1
 Authorization: Bearer {{TOKEN}}
 Content-Type: application/json
@@ -47,3 +66,45 @@ Content-Type: application/json
 {
     "status":"Inactive"
 }
+### 1)-
+POST {{URL}}/inquiries/1/convert-to-customer/1
+Authorization: Bearer {{TOKEN}}
+
+### 2)-
+DELETE {{URL}}/customersAttachments/1
+Authorization: Bearer {{TOKEN}}
+
+### 3)-
+POST {{URL}}/inquiries/1/notes
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+    "note":"Hello",
+    "note_date":"2025-10-14 14:49:01"
+}
+
+### 4)-
+POST {{URL}}/inquiries/1/reminders
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+    "note":"Hello",
+    "reminder_date":"2025-10-14 14:49:01",
+    "reminder_type":"Mail"
+}
+### 5)-
+PUT {{URL}}/sources/1
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+    "source_type":"Inactive"
+}
+
+###
+GET {{URL}}/inquiries/1
+Authorization: Bearer {{TOKEN}}
+
+

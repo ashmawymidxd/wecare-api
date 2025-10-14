@@ -50,4 +50,15 @@ class Inquiry extends Model
     {
         return $this->hasMany(InquiriesTimeLine::class, 'inquirie_id');
     }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(InquiryNote::class, 'inquirie_id');
+    }
+
+    public function reminders(): HasMany
+    {
+        return $this->hasMany(InquiryReminder::class, 'inquirie_id');
+    }
+
 }

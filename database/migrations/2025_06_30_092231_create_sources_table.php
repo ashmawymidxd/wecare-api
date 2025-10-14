@@ -31,8 +31,6 @@ return new class extends Migration
             $table->timestamps();
         });
     }
-    // Tasheel,Typing Center,PRO,Social Media,Referral,Inactive
-    // 'Tasheel', 'Typing Center', 'PRO', 'Social Media', 'Referral', 'Inactive'
 
     /**
      * Reverse the migrations.

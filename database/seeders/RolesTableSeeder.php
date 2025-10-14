@@ -37,28 +37,40 @@ class RolesTableSeeder extends Seeder
                 'name' => 'accountant',
                 'permissions' => [
                     'view-reports',
-                    'manage-accounting'
+                    'manage-accounting',
+                    'manage-sources',
+                    'manage-branches',
+                    'manage-rooms'
                 ]
             ],
             [
                 'name' => 'account-manager',
                 'permissions' => [
                     'manage-accounts',
-                    'view-reports'
+                    'view-reports',
+                    'manage-logs',
+                    'manage-documents',
+                    'manage-settings'
                 ]
             ],
             [
                 'name' => 'hr',
                 'permissions' => [
                     'manage-employees',
-                    'view-reports'
+                    'view-reports',
+                    'manage-customers',
+                    'manage-sources',
+                    'manage-branches',
+                    'manage-rooms',
+                    'manage-offices'
                 ]
             ],
             [
                 'name' => 'secretary',
                 'permissions' => [
                     'manage-employees',
-                    'view-reports'
+                    'view-reports',
+                    'manage-accounting',
                 ]
             ]
         ];

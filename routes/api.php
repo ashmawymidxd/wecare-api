@@ -65,6 +65,10 @@ Route::group(['middleware' => 'auth:api'], function() {
     Route::apiResource('customers', CustomerController::class)->middleware('permission:manage-customers');
     Route::post('customers/{customer}/attachments', [CustomerController::class, 'addAttachment'])
         ->middleware('permission:manage-customers');
+
+        // delete Attachment
+    Route::delete('customersAttachments/{attachmentId}', [CustomerController::class, 'deleteAttachment'])
+        ->middleware('permission:manage-customers');
     Route::post('customers/{customer}/notes', [CustomerController::class, 'addNote'])
         ->middleware('permission:manage-customers');
 
@@ -99,7 +103,17 @@ Route::group(['middleware' => 'auth:api'], function() {
     Route::patch('/contracts/{id}/cancel', [ContractController::class, 'updateStatus'])->middleware('permission:manage-contracts');
 
     // Inquiries
-    Route::apiResource('inquiries', InquiryController::class)->middleware('permission:manage-inquiries');
+    Route::apiResource('inquiries', InquiryController::class)
+        ->middleware('permission:manage-inquiries');
+
+    Route::post('/inquiries/{inquiryId}/convert-to-customer/{employeeId}', [CustomerController::class, 'InquiryAsCustomer'])
+        ->middleware('permission:manage-inquiries');
+
+    Route::post('inquiries/{inquiry}/notes', [InquiryController::class, 'addNote'])
+        ->middleware('permission:manage-inquiries');
+
+    Route::post('inquiries/{inquiry}/reminders', [InquiryController::class, 'addReminder'])
+        ->middleware('permission:manage-inquiries');
 
     // Reports
     Route::get('orderClients', [ReportController::class, 'orderClients'])->middleware('permission:view-dashboard')
