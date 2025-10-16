@@ -20,15 +20,6 @@ class EmployeeController extends Controller
         $this->middleware('permission:manage-employees');
     }
 
-    // public function index()
-    // {
-    //     $employees = Employee::with(['role', 'attachments'])
-    //         ->withCount('customers') // adds customers_count column
-    //         ->get();
-
-    //     return response()->json($employees);
-    // }
-
     public function index()
     {
         $Per_Page = request()->get('per_page',25);
@@ -114,6 +105,7 @@ class EmployeeController extends Controller
 
         return response()->json($employee->load(['role', 'attachments']), 201);
     }
+
 
     public function show(Employee $employee)
     {
@@ -350,4 +342,78 @@ class EmployeeController extends Controller
             ]
         ]);
     }
+
+
+    public function updateProfileImage(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'profile_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Find the employee
+            $employee = Employee::find($id);
+
+            if (!$employee) {
+                return response()->json([
+                    'message' => 'Employee not found'
+                ], 404);
+            }
+
+            // Delete old profile image if it exists
+            if ($employee->profile_image) {
+                $this->deleteOldProfileImage($employee->profile_image);
+            }
+
+            // Upload new profile image
+            if ($request->hasFile('profile_image')) {
+                $file = $request->file('profile_image');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $file->move(public_path('employee_profile_images'), $filename);
+                $employee->profile_image = url('employee_profile_images/' . $filename);
+            }
+
+            // Update only the profile image
+            $employee->save();
+
+            return response()->json([
+                'message' => 'Profile image updated successfully',
+                'profile_image' => $employee->profile_image,
+            ], 200);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'message' => 'Failed to update profile image'
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete old profile image
+     */
+    private function deleteOldProfileImage($imageUrl)
+    {
+        try {
+            $relativePath = str_replace(url('/') . '/', '', $imageUrl);
+            $imagePath = public_path($relativePath);
+
+            // Security check: ensure we're only deleting from the intended directory
+            if (file_exists($imagePath) &&
+                is_file($imagePath) &&
+                str_contains($relativePath, 'employee_profile_images/')) {
+                unlink($imagePath);
+            }
+        } catch (\Exception $e) {
+            // Don't throw exception, continue with new image upload
+        }
+    }
+
 }

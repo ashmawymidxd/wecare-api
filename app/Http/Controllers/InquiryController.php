@@ -250,4 +250,50 @@ class InquiryController extends Controller
         ], 201);
     }
 
+    public function updateProfileImage(Request $request, $id)
+    {
+        // Validate only the profile image
+        $validator = Validator::make($request->all(), [
+            'profile_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // Find the inquiry
+        $inquiry = Inquiry::find($id);
+        if (!$inquiry) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Inquiry not found.',
+            ], 404);
+        }
+
+        // Delete old image if it exists
+        if ($inquiry->profile_image) {
+            $oldImagePath = str_replace(url('/').'/', '', $inquiry->profile_image);
+            if (file_exists(public_path($oldImagePath))) {
+                unlink(public_path($oldImagePath));
+            }
+        }
+
+        // Handle new file upload
+        $file = $request->file('profile_image');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        $file->move(public_path('inquiry_profile_images'), $filename);
+        $inquiry->profile_image = url('inquiry_profile_images/' . $filename);
+
+        // Save the updated image
+        $inquiry->save();
+
+        return response()->json([
+            'message' => 'Profile image updated successfully.',
+            'profile_image' => $inquiry->profile_image
+        ]);
+    }
+
 }

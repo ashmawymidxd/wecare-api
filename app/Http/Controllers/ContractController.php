@@ -357,30 +357,48 @@ class ContractController extends Controller
     {
         if ($request->hasFile('contract_file')) {
             $file = $request->file('contract_file');
-            $path = $file->store('public/contracts/attachments');
+            $filename = time() . '_' . $file->getClientOriginalName();
+
+            // Ensure the directory exists in PUBLIC folder
+            $destinationPath = public_path('contracts/attachments');
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            // Move file to PUBLIC path
+            $file->move($destinationPath, $filename);
 
             ContractAttachment::create([
                 'contract_id' => $contract->id,
-                'file_path' => Storage::url($path),
+                'file_path' => url('contracts/attachments/' . $filename), // Full HTTP URL
                 'file_name' => $file->getClientOriginalName(),
                 'type' => 'contract'
             ]);
 
             ActivityLog::create([
-                "auth_id" =>Auth::guard('api')->user()->id,
-                "level" =>"info",
-                "message" =>"Clearance documents for Contract ".$contract->contract_number."with ".$contract->customer->name." Uploaded ",
-                "type" =>"Employees"
+                "auth_id" => Auth::guard('api')->user()->id,
+                "level" => "info",
+                "message" => "Clearance documents for Contract " . $contract->contract_number . " with " . $contract->customer->name . " Uploaded",
+                "type" => "Employees"
             ]);
         }
 
         if ($request->hasFile('payment_proof_file')) {
             $file = $request->file('payment_proof_file');
-            $path = $file->store('public/contracts/attachments');
+            $filename = time() . '_' . $file->getClientOriginalName();
+
+            // Ensure the directory exists in PUBLIC folder
+            $destinationPath = public_path('contracts/attachments');
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            // Move file to PUBLIC path
+            $file->move($destinationPath, $filename);
 
             ContractAttachment::create([
                 'contract_id' => $contract->id,
-                'file_path' => Storage::url($path),
+                'file_path' => url('contracts/attachments/' . $filename), // Full HTTP URL
                 'file_name' => $file->getClientOriginalName(),
                 'type' => 'payment_proof'
             ]);
@@ -401,20 +419,29 @@ class ContractController extends Controller
         }
 
         $file = $request->file('file');
-        $path = $file->store('public/contracts/attachments');
+        $filename = time() . '_' . $file->getClientOriginalName();
+
+        // Ensure the directory exists in PUBLIC folder
+        $destinationPath = public_path('contracts/attachments');
+        if (!file_exists($destinationPath)) {
+            mkdir($destinationPath, 0755, true);
+        }
+
+        // Move file to PUBLIC path
+        $file->move($destinationPath, $filename);
 
         $attachment = ContractAttachment::create([
             'contract_id' => $contract->id,
-            'file_path' => Storage::url($path),
+            'file_path' => url('contracts/attachments/' . $filename), // Full HTTP URL
             'file_name' => $file->getClientOriginalName(),
             'type' => $request->type
         ]);
 
         ActivityLog::create([
-            "auth_id" =>Auth::guard('api')->user()->id,
-            "level" =>"info",
-            "message" =>"Clearance documents for Contract ".$contract->contract_number." with ".$contract->customer->name." Uploaded ",
-            "type" =>"Employees"
+            "auth_id" => Auth::guard('api')->user()->id,
+            "level" => "info",
+            "message" => "Clearance documents for Contract " . $contract->contract_number . " with " . $contract->customer->name . " Uploaded ",
+            "type" => "Employees"
         ]);
 
         return response()->json($attachment, 201);
@@ -422,12 +449,79 @@ class ContractController extends Controller
 
     public function deleteAttachment($contractId, $attachmentId)
     {
-        $attachment = ContractAttachment::where('contract_id', $contractId)
-            ->findOrFail($attachmentId);
+        // Validate IDs are numeric and positive
+        $validator = Validator::make([
+            'contract_id' => $contractId,
+            'attachment_id' => $attachmentId
+        ], [
+            'contract_id' => 'required|integer|min:1',
+            'attachment_id' => 'required|integer|min:1'
+        ]);
 
-        Storage::delete($attachment->file_path);
-        $attachment->delete();
+        if ($validator->fails()) {
+            return response()->json([
+                'error' => 'Invalid IDs provided',
+                'details' => $validator->errors()
+            ], 422);
+        }
 
-        return response()->json(null, 204);
+        try {
+            $attachment = ContractAttachment::where('contract_id', $contractId)
+                ->findOrFail($attachmentId);
+
+            // Extract filename from the full URL and delete from public folder
+            $filename = basename($attachment->file_path);
+
+            // Validate filename for security
+            if (empty($filename) || preg_match('/\.\./', $filename)) {
+                throw new \Exception('Invalid filename detected');
+            }
+
+            $filePath = public_path('contracts/attachments/' . $filename);
+
+            if (file_exists($filePath)) {
+                if (!is_writable($filePath)) {
+                    throw new \Exception('File is not writable');
+                }
+
+                if (!unlink($filePath)) {
+                    throw new \Exception('Failed to delete file from storage');
+                }
+            } else {
+                // Log warning but continue with database deletion
+                Log::warning("File not found during attachment deletion: " . $filePath);
+            }
+
+            $attachment->delete();
+
+            // Log the deletion activity
+            ActivityLog::create([
+                "auth_id" => Auth::guard('api')->user()->id,
+                "level" => "info",
+                "message" => "Attachment deleted from Contract {$contractId} - File: {$filename}",
+                "type" => "Employees"
+            ]);
+
+            return response()->json([
+                'message' => 'Attachment deleted successfully',
+                'deleted_file' => $filename
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'error' => 'Attachment not found or does not belong to the specified contract'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error("Attachment deletion failed: " . $e->getMessage(), [
+                'contract_id' => $contractId,
+                'attachment_id' => $attachmentId,
+                'user_id' => Auth::guard('api')->user()->id ?? 'unknown'
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to delete attachment',
+                'details' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
     }
 }

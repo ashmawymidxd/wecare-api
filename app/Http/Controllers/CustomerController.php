@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\Inquiry;
-use App\Models\InquiriesTimeLine;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 
 class CustomerController extends Controller
 {
@@ -227,9 +227,6 @@ class CustomerController extends Controller
         }
     }
 
-    /**
-     * Handle timeline creation for existing inquiries
-     */
     private function handleTimelineCreation($email, $employeeId)
     {
         // Find existing inquiry by email
@@ -254,7 +251,6 @@ class CustomerController extends Controller
         ]);
     }
 
-
     public function show($id)
     {
         $customer = Customer::with(['attachments', 'notes','contracts'])->findOrFail($id);
@@ -263,6 +259,7 @@ class CustomerController extends Controller
 
     public function update(Request $request, $id)
     {
+       return response()->json($request->all());
         $customer = Customer::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
@@ -326,17 +323,39 @@ class CustomerController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        // Delete old image if exists
-        if ($customer->profile_image) {
-            Storage::delete($customer->profile_image);
+        // Define upload folder inside public directory
+        $uploadPath = public_path('customer_profile_images');
+
+        // Create directory if not exists
+        if (!File::exists($uploadPath)) {
+            File::makeDirectory($uploadPath, 0775, true);
         }
 
-        $path = $request->file('profile_image')->store('customer_profile_images');
-        $customer->update(['profile_image' => $path]);
+        // Delete old image if exists
+        if ($customer->profile_image) {
+            // Extract the filename part from the full URL (if it’s a URL)
+            $oldFilePath = str_replace(url('/') . '/', '', $customer->profile_image);
+            $oldFullPath = public_path($oldFilePath);
+
+            if (File::exists($oldFullPath)) {
+                File::delete($oldFullPath);
+            }
+        }
+
+        // Upload new image
+        $file = $request->file('profile_image');
+        $fileName = time() . '_' . $file->getClientOriginalName();
+        $file->move($uploadPath, $fileName);
+
+        // Generate full URL for saving in DB
+        $imageUrl = url('customer_profile_images/' . $fileName);
+
+        // Update customer profile image
+        $customer->update(['profile_image' => $imageUrl]);
 
         return response()->json([
             'message' => 'Profile image updated successfully',
-            'image_url' => Storage::url($path)
+            'image_url' => $imageUrl
         ]);
     }
 
@@ -346,7 +365,7 @@ class CustomerController extends Controller
 
         $validator = Validator::make($request->all(), [
             'file' => 'required|file',
-            'type' => 'required|in:client_id,company_licence,other',
+            'type' => 'required|in:client_id_document,company_license_document,other_documents',
         ]);
 
         if ($validator->fails()) {
@@ -429,8 +448,6 @@ class CustomerController extends Controller
             ], 500);
         }
     }
-
-
 
     protected function handleDocumentUploads(Request $request, Customer $customer)
     {

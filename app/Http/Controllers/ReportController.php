@@ -251,56 +251,103 @@ class ReportController extends Controller
         ];
     }
 
-    public function financeSales(){
+    public function financeSales()
+    {
+        try {
+            // Total sales this month
+            $totalSalesThisMonth = Contract::where('created_at', '>=', now()->startOfMonth())
+                ->sum('actual_amount') ?? 0;
 
-        // Calculate total Sales for this month
-        $totalSalesThisMonth = Contract::where('created_at', '>=', now()->startOfMonth())
-            ->sum('actual_amount');
+            // Total sales last month
+            $totalSalesLastMonth = Contract::whereBetween('created_at', [
+                now()->subMonth()->startOfMonth(),
+                now()->subMonth()->endOfMonth()
+            ])->sum('actual_amount') ?? 0;
 
-        // Calculate total Sales for last month
-        $totalSalesLastMonth = Contract::whereBetween('created_at', [
-            now()->subMonth()->startOfMonth(),
-            now()->subMonth()->endOfMonth()
-        ])->sum('actual_amount');
+            // Calculate percentage change safely
+            $percentageChangeSales = $this->calculatePercentageChange($totalSalesLastMonth, $totalSalesThisMonth);
 
-        $percentageChangeSales = $this->calculatePercentageChange($totalSalesLastMonth, $totalSalesThisMonth);
+            // Contract breakdowns
+            $totalRenewSalesThisMonth = Contract::where('created_at', '>=', now()->startOfMonth())
+                ->where('status', 'renewed')
+                ->sum('actual_amount') ?? 0;
 
-        // new contract amount
-        $totalRenewSalesThisMonth = Contract::where('created_at', '>=', now()->startOfMonth())->where('status','renewed')
-            ->sum('actual_amount');
+            $totalNewSalesThisMonth = Contract::where('created_at', '>=', now()->startOfMonth())
+                ->where('status', 'new')
+                ->sum('actual_amount') ?? 0;
 
-        // renewed contract amount
-        $totalNewSalesThisMonth = Contract::where('created_at', '>=', now()->startOfMonth())->where('status','new')
-            ->sum('actual_amount');
             $total = $totalNewSalesThisMonth + $totalRenewSalesThisMonth;
-         return [
-            "sales" => [
-                'this_month' => $totalSalesThisMonth,
-            ],
-            "newcontracts" =>[
-                'new_this_month' => $totalNewSalesThisMonth,
-                'percentage_change' => round(($totalNewSalesThisMonth / $total )*100,1),
-            ],
-            "renewalcontracts" =>[
-                'renew_this_month' => $totalRenewSalesThisMonth,
-                'percentage_change' => round(($totalRenewSalesThisMonth / $total)*100,1),
-            ]
-        ];
+
+            // Handle case when no contracts exist
+            if ($total <= 0) {
+                return response()->json([
+                    "message" => "No contract data found for this month",
+                    "sales" => [
+                        'this_month' => 0,
+                    ],
+                    "newcontracts" => [
+                        'new_this_month' => 0,
+                        'percentage_change' => 0,
+                    ],
+                    "renewalcontracts" => [
+                        'renew_this_month' => 0,
+                        'percentage_change' => 0,
+                    ]
+                ], 200);
+            }
+
+            return [
+                "sales" => [
+                    'this_month' => $totalSalesThisMonth,
+                    'percentage_change' => $percentageChangeSales,
+                ],
+                "newcontracts" => [
+                    'new_this_month' => $totalNewSalesThisMonth,
+                    'percentage_change' => round(($totalNewSalesThisMonth / $total) * 100, 1),
+                ],
+                "renewalcontracts" => [
+                    'renew_this_month' => $totalRenewSalesThisMonth,
+                    'percentage_change' => round(($totalRenewSalesThisMonth / $total) * 100, 1),
+                ]
+            ];
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An unexpected error occurred while calculating finance sales.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
-    public function paymentMethods(){
-        // 'Cash', 'Cheque', 'Bank Transfer'
-        $totalContracts = Contract::count();
-        $cashContracts = Contract::where('payment_method','Cash')->count();
-        $chequeContracts = Contract::where('payment_method','Cheque')->count();
-        $bankTransferContracts = Contract::where('payment_method','Bank Transfer')->count();
+    public function paymentMethods()
+    {
+        try {
+            $totalContracts = Contract::count();
 
-        return [
-           "cash_contracts"=>round(($cashContracts/$totalContracts)*100,1),
-           "cheque_contracts"=>round(($chequeContracts/$totalContracts)*100,1),
-           "bank_transfer_contracts"=>round(($bankTransferContracts/$totalContracts)*100,1)
-        ];
+            // Handle empty dataset safely
+            if ($totalContracts === 0) {
+                return response()->json([
+                    "message" => "No contracts found to calculate payment method statistics",
+                    "cash_contracts" => 0,
+                    "cheque_contracts" => 0,
+                    "bank_transfer_contracts" => 0,
+                ], 200);
+            }
 
+            $cashContracts = Contract::where('payment_method', 'Cash')->count();
+            $chequeContracts = Contract::where('payment_method', 'Cheque')->count();
+            $bankTransferContracts = Contract::where('payment_method', 'Bank Transfer')->count();
+
+            return [
+                "cash_contracts" => round(($cashContracts / $totalContracts) * 100, 1),
+                "cheque_contracts" => round(($chequeContracts / $totalContracts) * 100, 1),
+                "bank_transfer_contracts" => round(($bankTransferContracts / $totalContracts) * 100, 1)
+            ];
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An unexpected error occurred while calculating payment methods.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function expenses(){

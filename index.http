@@ -1,4 +1,4 @@
-@TOKEN = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NTk4NTkyNjUsImV4cCI6MTc2MDQ2NDA2NSwibmJmIjoxNzU5ODU5MjY1LCJqdGkiOiJRaHhyb0F0d0xHSHZBbHdSIiwic3ViIjoiMSIsInBydiI6IjMyOTYzYTYwNmMyZjE3MWYxYzE0MzMxZTc2OTc2NmNkNTkxMmVkMTUifQ.-tDrFkAfSPWHTSPtSsdggbelaBx9y0D70J1RJVIXlL4
+@TOKEN = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2FyaW5hdG91Y2guY29tL2FwaS9hdXRoL2xvZ2luIiwiaWF0IjoxNzYwNTI3NjAwLCJleHAiOjE3NjExMzI0MDAsIm5iZiI6MTc2MDUyNzYwMCwianRpIjoiMmI1TUlSUGFlU1l6ajNjUSIsInN1YiI6IjEiLCJwcnYiOiIzMjk2M2E2MDZjMmYxNzFmMWMxNDMzMWU3Njk3NjZjZDU5MTJlZDE1In0.5WEWhg4zkqtXlykedFei7EtmgCbgVkclhO6jG5BBZGw
 ###
 @URL = http://127.0.0.1:8000/api
 
@@ -36,7 +36,7 @@ Content-Type: application/json
 
 {
     "name":"ahmed",
-    "address":"ahmed"
+    "address":"ahmed",
 }
 
 ###
@@ -104,7 +104,7 @@ Content-Type: application/json
 }
 
 ###
-GET {{URL}}/inquiries/1
+GET {{URL}}/finance
 Authorization: Bearer {{TOKEN}}
 
 

@@ -51,7 +51,8 @@ Route::group(['middleware' => 'auth:api'], function() {
         ->middleware('permission:manage-employees');
     Route::post('/employees/transfer-customers', [EmployeeController::class, 'transferCustomers'])
         ->middleware('permission:manage-employees');
-
+    Route::post('/employeeUpdateProfileImage/{id}',[EmployeeController::class , 'updateProfileImage'])
+        ->middleware('permission:manage-employees');
     // source
     Route::apiResource('sources', SourceController::class)->middleware('permission:manage-sources');
     Route::get('/source-types', [SourceController::class, 'getSourceTypes'])
@@ -65,7 +66,8 @@ Route::group(['middleware' => 'auth:api'], function() {
     Route::apiResource('customers', CustomerController::class)->middleware('permission:manage-customers');
     Route::post('customers/{customer}/attachments', [CustomerController::class, 'addAttachment'])
         ->middleware('permission:manage-customers');
-
+    Route::post('/customerUpdateProfileImage/{customer}',[CustomerController::class , 'updateProfileImage'])
+        ->middleware('permission:manage-customers');
         // delete Attachment
     Route::delete('customersAttachments/{attachmentId}', [CustomerController::class, 'deleteAttachment'])
         ->middleware('permission:manage-customers');
@@ -105,15 +107,14 @@ Route::group(['middleware' => 'auth:api'], function() {
     // Inquiries
     Route::apiResource('inquiries', InquiryController::class)
         ->middleware('permission:manage-inquiries');
-
     Route::post('/inquiries/{inquiryId}/convert-to-customer/{employeeId}', [CustomerController::class, 'InquiryAsCustomer'])
         ->middleware('permission:manage-inquiries');
-
-    Route::post('inquiries/{inquiry}/notes', [InquiryController::class, 'addNote'])
+    Route::post('/inquiries/{inquiry}/notes', [InquiryController::class, 'addNote'])
         ->middleware('permission:manage-inquiries');
-
-    Route::post('inquiries/{inquiry}/reminders', [InquiryController::class, 'addReminder'])
+    Route::post('/inquiries/{inquiry}/reminders', [InquiryController::class, 'addReminder'])
         ->middleware('permission:manage-inquiries');
+    Route::post('/inquiriesUpdateProfileImage/{id}', [InquiryController::class, 'updateProfileImage']);
+
 
     // Reports
     Route::get('orderClients', [ReportController::class, 'orderClients'])->middleware('permission:view-dashboard')
